@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* ── 易经深色主题 CSS 变量 ── */
+:root {
+  /* 墨色体系 */
+  --ink: #d4c5a9;
+  --ink-light: #b8a88a;
+  --ink-faint: #7a6f5c;
+
+  /* 金色体系 */
+  --gold: #c8961e;
+  --gold-bright: #e8c45a;
+  --gold-pale: #f0d890;
+  --gold-dim: #8a6820;
+
+  /* 背景 */
+  --bg-deep: #0d0a07;
+  --bg-card: #1e1915;
+
+  /* 阴影 */
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.6);
+
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color-scheme: dark;
+  color: var(--ink);
+  background: var(--bg-deep);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+#app { min-height: 100vh; }
+
+/* 动画 */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes guaCardEnter {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.gua-card-enter { animation: guaCardEnter 0.35s cubic-bezier(0.4,0,0.2,1) both; }
+.tab-content-enter { animation: fadeIn 0.2s ease; }
