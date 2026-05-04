@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { Wuxing, Position } from '@/types'
 import type { GuaBase } from '@/types'
 import { GUA_DATA } from '@/data/gua-data'
@@ -24,6 +24,24 @@ const trigram = ref('')
 const selectedGua = ref<GuaBase | null>(null)
 const immersedGua = ref<GuaBase | null>(null)
 const theme = ref('default')
+
+// Sync wuxing filter to body[data-wx] for CSS atmosphere variables
+watch(wuxing, (v) => {
+  if (typeof document !== 'undefined') {
+    if (v === 'all') {
+      document.body.removeAttribute('data-wx')
+    } else {
+      document.body.setAttribute('data-wx', v)
+    }
+    // Also update particle canvas color
+    ;(window as unknown as Record<string, string>).__atm_color =
+      v === 'all' ? '#c8961e' :
+      v === 'jin' ? '#c8961e' :
+      v === 'mu' ? '#5a8c5a' :
+      v === 'shui' ? '#4a7c9b' :
+      v === 'huo' ? '#b84a2d' : '#7a6c3a'
+  }
+})
 
 onMounted(() => {
   fetchGuaList()
@@ -68,7 +86,11 @@ function handleSelect(key: string) {
 function handleWuxingChange(v: Wuxing | 'all') {
   wuxing.value = v
   if (typeof document !== 'undefined') {
-    document.body.setAttribute('data-wx', v === 'all' ? '' : v)
+    if (v === 'all') {
+      document.body.removeAttribute('data-wx')
+    } else {
+      document.body.setAttribute('data-wx', v)
+    }
     ;(window as unknown as Record<string, string>).__atm_color =
       v === 'all' ? '#c8961e' :
       v === 'jin' ? '#c8961e' :
@@ -136,7 +158,8 @@ const isLoading = computed(() => guaData.value === null && !apiError.value)
   />
 
   <main
-    style="position: relative; z-index: 1; padding: 32px max(24px, calc((100% - 1200px) / 2)) 64px"
+    style="position: relative; z-index: 1; padding: 16px 16px 48px"
+    class="md:!px-6 md:!py-8 lg:!px-[max(24px,calc((100%-1200px)/2))] lg:!py-10"
   >
     <!-- Loading -->
     <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center gap-3">

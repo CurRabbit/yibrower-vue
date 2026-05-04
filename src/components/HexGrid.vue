@@ -20,7 +20,7 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
 </script>
 
 <template>
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
     <div
       v-for="(gua, i) in guas"
       :key="getGuaKey(gua)"
@@ -39,6 +39,7 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
           borderLeft: getCardVariant(gua) === 'recessive' ? `2px dashed ${WX_COLOR[gua.wuxing]}50` : undefined,
           boxShadow: 'var(--shadow-card)',
           borderRadius: '12px',
+          transition: 'border-color 0.3s ease, box-shadow 0.3s ease, border-top 0.3s ease, border-left 0.3s ease',
         }"
       >
         <!-- Image area -->

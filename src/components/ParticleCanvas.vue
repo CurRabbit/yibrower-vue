@@ -49,11 +49,12 @@ onMounted(() => {
   window.addEventListener('resize', () => resize(canvas))
 
   const particles = Array.from({ length: 40 }, () => new Particle(canvas))
-  const atmColor = (window as unknown as Record<string, string>).__atm_color ?? '#c8961e'
 
   function animate() {
     if (!ctx || !canvas) return
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    // Re-read window.__atm_color every frame so wuxing filter updates take effect immediately
+    const atmColor = (window as unknown as Record<string, string>).__atm_color ?? '#c8961e'
     for (const p of particles) {
       p.update(canvas)
       p.draw(ctx, atmColor)

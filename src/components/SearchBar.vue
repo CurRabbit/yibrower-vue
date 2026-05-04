@@ -8,7 +8,7 @@ const focused = ref(false)
 </script>
 
 <template>
-  <div class="relative" style="width: 200px; flex-shrink: 0">
+  <div class="relative" style="width: 140px; flex-shrink: 0; min-width: 0">
     <div
       class="absolute inset-0 rounded-full pointer-events-none transition-all duration-300"
       :style="{
@@ -24,7 +24,7 @@ const focused = ref(false)
       <input
         type="text"
         :value="value"
-        placeholder="搜索卦名、拼音…"
+        placeholder="搜索…"
         class="w-full rounded-full text-sm transition-all"
         :style="{
           padding: '7px 16px 7px 32px',

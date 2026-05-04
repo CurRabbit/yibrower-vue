@@ -31,8 +31,8 @@ const THEMES = [
 
 <template>
   <header
-    class="sticky top-0 z-50 flex items-center gap-3 flex-wrap relative"
-    style="padding: 10px 24px; background: rgba(13,10,7,0.88); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(180,150,80,0.08); box-shadow: 0 4px 30px rgba(0,0,0,0.3)"
+    class="sticky top-0 z-50 flex items-center gap-2 flex-wrap relative"
+    style="padding: 8px 12px; background: rgba(13,10,7,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(180,150,80,0.08); box-shadow: 0 4px 30px rgba(0,0,0,0.3)"
   >
     <!-- Bottom gradient line -->
     <div

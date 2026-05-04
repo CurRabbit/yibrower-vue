@@ -13,7 +13,7 @@ const emit = defineEmits<{ 'update:wuxing': [v: Wuxing | 'all'] }>()
     <button
       v-for="wx in ['all', ...ALL_WUXING] as const"
       :key="wx"
-      class="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+      class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all"
       :style="{
         background: props.wuxing === wx
           ? `${wx === 'all' ? '#c8961e' : WX_COLOR[wx]}18`

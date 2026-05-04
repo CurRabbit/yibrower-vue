@@ -1,51 +1,189 @@
 @import "tailwindcss";
 
-/* ── 易经深色主题 CSS 变量 ── */
+/* ── 易经浏览器 · 全局样式 ── */
+
 :root {
-  /* 墨色体系 */
-  --ink: #d4c5a9;
-  --ink-light: #b8a88a;
-  --ink-faint: #7a6f5c;
+  /* 基础色 */
+  --bg:           #0f0d0b;
+  --surface:      #1a1714;
+  --surface-2:    #242018;
+  --elevated:     #2e2820;
+  --border:       rgba(200, 180, 120, 0.08);
+  --border-mid:   rgba(200, 180, 120, 0.14);
+  --border-gold:  rgba(200, 150, 30, 0.30);
+  --ink:          #e8dcc8;
+  --ink-light:    #a89878;
+  --ink-faint:    #6b5d4d;
+  --vermilion:    #c84028;
+  --vermilion-soft: rgba(200, 64, 40, 0.12);
 
   /* 金色体系 */
-  --gold: #c8961e;
-  --gold-bright: #e8c45a;
-  --gold-pale: #f0d890;
-  --gold-dim: #8a6820;
+  --gold:         #c8961e;
+  --gold-bright:  #e8b840;
+  --gold-pale:    #f0d880;
+  --gold-dim:     #8b6914;
 
-  /* 背景 */
-  --bg-deep: #0d0a07;
-  --bg-card: #1e1915;
+  /* 五行氛围色 */
+  --atm-color:    #c8961e;
+  --atm-glow:     rgba(200, 150, 30, 0.12);
+  --atm-bg:       rgba(200, 150, 30, 0.04);
 
   /* 阴影 */
-  --shadow-card: 0 4px 24px rgba(0,0,0,0.6);
+  --shadow:       0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-card:  0 2px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(200, 150, 30, 0.06);
+  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(200, 150, 30, 0.18);
 
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.6;
   color-scheme: dark;
   color: var(--ink);
-  background: var(--bg-deep);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; }
-#app { min-height: 100vh; }
+/* ── 五行氛围光晕 ── */
+body[data-wx="jin"]  { --atm-color: #c8961e !important; --atm-glow: rgba(200,150,30,0.18) !important;  --atm-bg: rgba(200,150,30,0.06) !important; }
+body[data-wx="mu"]   { --atm-color: #5a8c5a !important; --atm-glow: rgba(90,140,90,0.22) !important;  --atm-bg: rgba(90,140,90,0.07) !important; }
+body[data-wx="shui"] { --atm-color: #4a7c9b !important; --atm-glow: rgba(74,124,155,0.22) !important; --atm-bg: rgba(74,124,155,0.07) !important; }
+body[data-wx="huo"]  { --atm-color: #b84a2d !important; --atm-glow: rgba(184,74,45,0.22) !important;  --atm-bg: rgba(184,74,45,0.07) !important; }
+body[data-wx="tu"]   { --atm-color: #7a6c3a !important; --atm-glow: rgba(122,108,58,0.22) !important; --atm-bg: rgba(122,108,58,0.07) !important; }
 
-/* 动画 */
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
+/* 全选时中性暖灰 */
+body:not([data-wx]) {
+  --atm-color: #8a7a6a !important;
+  --atm-glow: rgba(138,122,106,0.06) !important;
+  --atm-bg: rgba(138,122,106,0.02) !important;
+}
+
+/* ── 主题色：水墨 ── */
+body[data-theme="ink"] {
+  --bg:         #0d0c0a;
+  --surface:    #181614;
+  --surface-2:  #211e1a;
+  --elevated:   #2a2620;
+  --border:     rgba(160,148,128,0.07);
+  --border-mid: rgba(160,148,128,0.12);
+  --ink:        #d4ccc0;
+  --ink-light:  #9a9288;
+  --ink-faint:  #5c564e;
+  --gold:       #8a7e70;
+  --gold-bright:#a89880;
+  --gold-pale:  #c0b8a8;
+  --gold-dim:   #5e564a;
+  --shadow-card:  0 2px 12px rgba(0,0,0,0.5), 0 0 0 1px rgba(138,126,112,0.06);
+  --shadow-hover: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(138,126,112,0.14);
+}
+
+/* ── 主题色：青瓷 ── */
+body[data-theme="celadon"] {
+  --bg:         #080f0e;
+  --surface:    #0e1a18;
+  --surface-2:  #132420;
+  --elevated:   #192e2a;
+  --border:     rgba(100,160,148,0.07);
+  --border-mid: rgba(100,160,148,0.12);
+  --ink:        #c0d8d0;
+  --ink-light:  #7a9e96;
+  --ink-faint:  #3e5c54;
+  --gold:       #5a8878;
+  --gold-bright:#7aab9e;
+  --gold-pale:  #a0c8bc;
+  --gold-dim:   #3a6050;
+  --shadow-card:  0 2px 12px rgba(0,0,0,0.5), 0 0 0 1px rgba(90,136,120,0.06);
+  --shadow-hover: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(90,136,120,0.14);
+}
+
+/* ── 主题色：紫禁 ── */
+body[data-theme="vermilion"] {
+  --bg:         #0f0a08;
+  --surface:    #1a120e;
+  --surface-2:  #241a14;
+  --elevated:   #2e2018;
+  --border:     rgba(200,140,120,0.07);
+  --border-mid: rgba(200,140,120,0.12);
+  --ink:        #e0d0c4;
+  --ink-light:  #a88878;
+  --ink-faint:  #5c4438;
+  --gold:       #9a6840;
+  --gold-bright:#c07a48;
+  --gold-pale:  #d4a878;
+  --gold-dim:   #6a4428;
+  --shadow-card:  0 2px 12px rgba(0,0,0,0.5), 0 0 0 1px rgba(180,120,80,0.06);
+  --shadow-hover: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(180,120,80,0.14);
+}
+
+/* ── 基础重置 ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 15% 0%, var(--atm-glow) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 100%, var(--atm-bg) 0%, transparent 50%);
+  color: var(--ink);
+  min-height: 100vh;
+  transition: background-image 0.6s ease;
+}
+
+/* ── 左右金色竖线 ── */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; bottom: 0;
+  width: 2px;
+  pointer-events: none;
+  z-index: 1000;
+  transition: background 0.6s ease, opacity 0.6s ease;
+}
+body::before {
+  left: 0;
+  background: linear-gradient(to bottom, transparent, var(--atm-color) 30%, var(--atm-color) 50%, var(--atm-color) 70%, transparent);
+  opacity: 0.15;
+}
+body::after {
+  right: 0;
+  background: linear-gradient(to bottom, transparent, var(--atm-color) 30%, var(--atm-color) 50%, var(--atm-color) 70%, transparent);
+  opacity: 0.15;
+}
+
+/* ── 滚动条 ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+/* ── 动画 ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-@keyframes guaCardEnter {
-  from { opacity: 0; transform: translateY(12px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.gua-card-enter { animation: guaCardEnter 0.35s cubic-bezier(0.4,0,0.2,1) both; }
-.tab-content-enter { animation: fadeIn 0.2s ease; }
+@keyframes trigramPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(212,168,67,0.30), 0 0 20px rgba(212,168,67,0.12); }
+  50%       { box-shadow: 0 0 16px rgba(212,168,67,0.50), 0 0 30px rgba(212,168,67,0.20); }
+}
+@keyframes goldLineGlow {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.gua-card-enter { animation: fadeInUp 0.35s ease-out both; }
+.tab-content-enter { animation: fadeSlideIn 0.25s ease-out both; }
+.marquee-track { animation: marquee-scroll 18s linear infinite; }
+.marquee-track:hover { animation-play-state: paused; }
+
+#app { min-height: 100vh; }
