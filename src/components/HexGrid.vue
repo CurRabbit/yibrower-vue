@@ -43,10 +43,10 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
           transition: 'border-color 0.3s ease, box-shadow 0.3s ease, border-top 0.3s ease, border-left 0.3s ease',
         }"
       >
-        <!-- 卦象区域：纯爻符号 -->
+        <!-- 卦象区域：缩小水印，提升对比度 -->
         <div class="relative w-full aspect-square flex items-center justify-center overflow-hidden">
-          <div class="text-4xl leading-none" style="color: var(--ink-faint); opacity: 0.25; user-select: none;">
-            {{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷰','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][gua.num - 1] }}
+          <div class="text-xl leading-none transition-opacity duration-300 group-hover:opacity-20" style="color: var(--ink-faint); opacity: 0.45; user-select: none;">
+            {{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][gua.num - 1] }}
           </div>
           <!-- Wuxing corner badge -->
           <div
@@ -64,13 +64,13 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
 
         <!-- Card body -->
         <div class="px-2 pb-2 pt-1 flex items-center gap-1">
-          <!-- 卦爻符号，用五行色渲染 -->
-          <div class="flex-shrink-0 leading-none" :style="{ fontSize: '16px', lineHeight: 1 }">
+          <!-- 卦爻符号：提升对比度，阴爻不再发虚 -->
+          <div class="flex-shrink-0 leading-none" :style="{ fontSize: '15px', lineHeight: 1 }">
             <span
               v-for="(b, idx) in [...gua.binary].reverse()"
               :key="idx"
               :style="{
-                color: b === '1' ? WX_COLOR[gua.wuxing] : `${WX_COLOR[gua.wuxing]}70`,
+                color: b === '1' ? WX_COLOR[gua.wuxing] : `${WX_COLOR[gua.wuxing]}99`,
                 display: 'inline-block',
                 width: '8px',
                 textAlign: 'center',
@@ -85,33 +85,33 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
             {{ gua.name }}
           </span>
 
-          <!-- 卦象 -->
-          <div class="relative ml-auto flex-shrink-0" style="width: 26px; height: 30px">
+          <!-- 卦象：缩小高度，独立层次，不抢爻符 -->
+          <div class="relative ml-auto flex-shrink-0" style="width: 22px; height: 24px">
             <div
               v-for="(b, idx) in [...gua.binary].reverse()"
               :key="idx"
               class="absolute left-0 right-0"
-              :style="{ top: idx * 5 }"
+              :style="{ top: idx * 4 }"
             >
               <!-- 阳爻 -->
               <div
                 v-if="b === '1'"
                 class="absolute rounded-sm"
                 :style="{
-                  left: 0, width: '100%', top: 0, height: 3,
+                  left: 0, width: '100%', top: 0, height: 2,
                   background: WX_COLOR[gua.wuxing],
-                  boxShadow: `0 0 3px ${WX_COLOR[gua.wuxing]}60`,
+                  boxShadow: `0 0 2px ${WX_COLOR[gua.wuxing]}50`,
                 }"
               />
               <!-- 阴爻 -->
               <template v-else>
                 <div
                   class="absolute rounded-sm"
-                  :style="{ left: 0, top: 0.5, width: '40%', height: 2, background: `${WX_COLOR[gua.wuxing]}80` }"
+                  :style="{ left: 0, top: 0.5, width: '38%', height: 2, background: `${WX_COLOR[gua.wuxing]}99` }"
                 />
                 <div
                   class="absolute rounded-sm"
-                  :style="{ right: 0, top: 0.5, width: '40%', height: 2, background: `${WX_COLOR[gua.wuxing]}80` }"
+                  :style="{ right: 0, top: 0.5, width: '38%', height: 2, background: `${WX_COLOR[gua.wuxing]}99` }"
                 />
               </template>
             </div>
