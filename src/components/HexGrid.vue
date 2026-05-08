@@ -18,6 +18,15 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
   if (yangCount <= 2) return 'recessive'
   return 'balanced'
 }
+
+// 阳多 → 直角（刚健），阴多 → 圆角（柔顺）
+function getCardRadius(gua: GuaBase): string {
+  const yangCount = (gua.binary.match(/1/g) || []).length
+  if (yangCount >= 5) return '2px'          // 纯阳 — 几乎直角
+  if (yangCount >= 4) return '6px'           // 阳多 — 小圆角
+  if (yangCount <= 2) return '16px'         // 阴多 — 圆润
+  return '10px'                             // 阴阳均衡
+}
 </script>
 
 <template>
@@ -30,7 +39,7 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
       @click="onSelect(getGuaKey(gua))"
     >
       <div
-        class="relative overflow-hidden transition-all duration-300 group-hover:shadow-hover group-hover:-translate-y-1 max-w-[130px]"
+        class="relative overflow-hidden transition-all duration-300 group-hover:shadow-hover group-hover:-translate-y-1"
         :style="{
           background: getCardVariant(gua) === 'balanced'
             ? `linear-gradient(135deg, ${WX_BG[gua.wuxing].replace('0.12', '0.10')}, rgba(22,18,14,0.96))`
@@ -39,13 +48,13 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
           borderTop: getCardVariant(gua) === 'gateway' ? `2px solid ${WX_COLOR[gua.wuxing]}` : undefined,
           borderLeft: getCardVariant(gua) === 'recessive' ? `2px dashed ${WX_COLOR[gua.wuxing]}50` : undefined,
           boxShadow: 'var(--shadow-card)',
-          borderRadius: '12px',
+          borderRadius: getCardRadius(gua),
           transition: 'border-color 0.3s ease, box-shadow 0.3s ease, border-top 0.3s ease, border-left 0.3s ease',
         }"
       >
         <!-- 卦象区域：改扁比例 + max-width -->
         <div class="relative w-full aspect-video flex items-center justify-center overflow-hidden">
-          <div class="text-xl leading-none transition-opacity duration-300 group-hover:opacity-20" style="color: var(--ink-faint); opacity: 0.45; user-select: none;">
+          <div class="text-5xl leading-none transition-opacity duration-300 group-hover:opacity-20" style="color: var(--ink-faint); opacity: 0.35; user-select: none;">
             {{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][gua.num - 1] }}
           </div>
           <!-- Wuxing corner badge -->
@@ -121,8 +130,8 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
         <!-- 最新图片缩略图 -->
         <div
           v-if="props.imageMap && props.imageMap[gua.num]"
-          class="w-full h-16 overflow-hidden"
-          :style="{ borderTop: `1px solid ${WX_BG[gua.wuxing].replace('0.12', '0.20')}` }"
+          class="w-full overflow-hidden"
+          :style="{ height: '32px', borderTop: `1px solid ${WX_BG[gua.wuxing].replace('0.12', '0.20')}` }"
         >
           <img
             :src="props.imageMap[gua.num]"
