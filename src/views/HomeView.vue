@@ -11,6 +11,22 @@ import Header from '@/components/Header.vue'
 import HexGrid from '@/components/HexGrid.vue'
 import GuaDetail from '@/components/GuaDetail.vue'
 import ImmersionView from '@/components/ImmersionView.vue'
+import { useTheme } from '@/composables/useTheme'
+
+// Initialize theme system (applies CSS vars on mount)
+const { theme } = useTheme()
+const bannerRef = ref<HTMLElement | null>(null)
+
+// 主题切换时触发 Banner 的高亮动画
+watch(() => theme.value.color, () => {
+  if (!bannerRef.value) return
+  bannerRef.value.classList.remove('theme-flash')
+  void bannerRef.value.offsetWidth // force reflow to restart animation
+  bannerRef.value.classList.add('theme-flash')
+  bannerRef.value.addEventListener('animationend', () => {
+    bannerRef.value?.classList.remove('theme-flash')
+  }, { once: true })
+})
 
 function getGuaKey(g: GuaBase): string {
   return `gua_${String(g.num).padStart(2, '0')}_${g.pinyin}`
@@ -26,7 +42,6 @@ const position = ref<Position | 'all'>('all')
 const trigram = ref('')
 const selectedGua = ref<GuaBase | null>(null)
 const immersedGua = ref<GuaBase | null>(null)
-const theme = ref('default')
 const order = ref<GuaOrder>('number')
 
 // Sync wuxing filter to body[data-wx] for CSS atmosphere variables
@@ -138,13 +153,6 @@ function handleTrigramChange(b: string) {
   trigram.value = b
 }
 
-function handleThemeChange(v: string) {
-  theme.value = v
-  if (typeof document !== 'undefined') {
-    document.body.setAttribute('data-theme', v === 'default' ? '' : v)
-  }
-}
-
 function handleOrderChange(v: GuaOrder) {
   order.value = v
 }
@@ -195,52 +203,78 @@ const todayGua = computed<GuaBase | null>(() => {
     v-model:wuxing="wuxing"
     v-model:position="position"
     v-model:trigram="trigram"
-    v-model:theme="theme"
     v-model:order="order"
     :totalGuas="filteredWithTodayFirst.length"
   />
 
   <!-- 今日卦象 Banner -->
   <div
+    ref="bannerRef"
     v-if="todayGua"
-    class="relative mx-4 my-3 px-5 py-4 rounded-2xl flex items-center gap-4 cursor-pointer transition-all duration-300 hover:scale-[1.01]"
-    style="background: linear-gradient(135deg, rgba(22,18,14,0.95), rgba(28,22,16,0.92)); border: 1px solid rgba(200,150,30,0.25); max-width: 680px; margin-left: auto; margin-right: auto; box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(200,150,30,0.1);"
+    class="today-banner"
     @click="handleSelect(getGuaKey(todayGua))"
   >
-    <!-- 左侧：卦象预览 -->
-    <div
-      class="flex-shrink-0 rounded-xl w-16 h-16 flex items-center justify-center text-3xl"
-      :style="{
-        background: `linear-gradient(135deg, ${WX_BG[todayGua.wuxing].replace('0.12','0.3')}, rgba(22,18,14,0.9))`,
-        border: `1px solid ${WX_COLOR[todayGua.wuxing]}40`,
-        boxShadow: `0 0 20px ${WX_COLOR[todayGua.wuxing]}20`,
-      }"
-    >
-      {{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷰','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][todayGua.num - 1] }}
-    </div>
-
-    <!-- 中间：卦名 + 卦辞 -->
-    <div class="flex-1 min-w-0">
-      <div class="text-xs font-medium mb-1" style="color: rgba(200,150,30,0.7); letter-spacing: 0.2em">今日卦象</div>
-      <div class="text-xl font-bold mb-0.5" :style="{ color: WX_COLOR[todayGua.wuxing] }">{{ todayGua.name }}</div>
-      <div class="text-xs truncate" style="color: var(--ink-faint)">{{ todayGua.guaci.slice(0, 30) }}{{ todayGua.guaci.length > 30 ? '…' : '' }}</div>
-    </div>
-
-    <!-- 右侧：爻符 + 箭头 -->
-    <div class="flex-shrink-0 flex flex-col items-center gap-1">
-      <div class="leading-none" style="font-size: 11px; color: var(--ink-faint)">
+    <div class="today-banner-inner">
+      <!-- 左侧：卦象图片 or 符号 fallback -->
+      <div
+        class="flex-shrink-0 rounded-2xl overflow-hidden flex items-center justify-center"
+        :style="{
+          width: '64px',
+          height: '64px',
+          background: `linear-gradient(135deg, color-mix(in oklab, var(--atm-color) 18%, var(--surface)), var(--surface))`,
+          border: `1px solid color-mix(in oklab, var(--atm-color) 30%, transparent)`,
+          boxShadow: `0 0 20px color-mix(in oklab, var(--atm-color) 15%, transparent), inset 0 1px 0 color-mix(in oklab, var(--atm-color) 18%, transparent)`,
+        }"
+      >
+        <img
+          v-if="guaImages[todayGua.num]"
+          :src="guaImages[todayGua.num]"
+          :alt="todayGua.name"
+          class="w-full h-full object-cover"
+          @error="$event.target.style.display = 'none'"
+        />
         <span
-          v-for="(b, idx) in [...todayGua.binary].reverse()"
-          :key="idx"
-          :style="{
-            color: b === '1' ? WX_COLOR[todayGua.wuxing] : `${WX_COLOR[todayGua.wuxing]}60`,
-            display: 'block',
-            textAlign: 'center',
-            textShadow: b === '1' ? `0 0 8px ${WX_COLOR[todayGua.wuxing]}60` : 'none',
-          }"
-        >{{ b === '1' ? '—' : '‑‑' }}</span>
+          v-else
+          class="text-3xl sm:text-4xl leading-none select-none"
+          style="color: color-mix(in oklab, var(--atm-color) 60%, var(--ink))"
+        >{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][todayGua.num - 1] }}</span>
       </div>
-      <div class="text-sm opacity-40 mt-1">›</div>
+
+      <!-- 中间：卦名 + 卦辞 -->
+      <div class="flex-1 min-w-0">
+        <div
+          class="text-[10px] sm:text-xs font-medium mb-1 tracking-[0.18em] uppercase"
+          style="color: color-mix(in oklab, var(--atm-color) 80%, var(--ink-light))"
+        >今日卦象</div>
+        <div
+          class="text-lg sm:text-xl font-bold mb-0.5 gua-name-glow"
+          :style="{ color: `var(--atm-color)` }"
+        >{{ todayGua.name }}</div>
+        <div
+          class="text-[11px] sm:text-xs truncate pr-2"
+          style="color: var(--ink-light)"
+        >{{ todayGua.guaci.slice(0, 32) }}{{ todayGua.guaci.length > 32 ? '…' : '' }}</div>
+      </div>
+
+      <!-- 右侧：爻符 + 箭头 -->
+      <div class="flex-shrink-0 flex flex-col items-center gap-1">
+        <div class="leading-none" style="font-size: 11px; color: var(--ink-faint)">
+          <span
+            v-for="(b, idx) in [...todayGua.binary].reverse()"
+            :key="idx"
+            :style="{
+              color: b === '1' ? 'var(--atm-color)' : 'var(--ink-faint)',
+              display: 'block',
+              textAlign: 'center',
+              textShadow: b === '1' ? `0 0 6px color-mix(in oklab, var(--atm-color) 50%, transparent)` : 'none',
+            }"
+          >{{ b === '1' ? '—' : '‑‑' }}</span>
+        </div>
+        <div
+          class="text-sm mt-1 transition-all duration-300 group-hover:translate-x-0.5"
+          style="color: var(--ink-faint)"
+        >›</div>
+      </div>
     </div>
   </div>
 

@@ -132,6 +132,7 @@ onUnmounted(() => {
           :alt="gua.name"
           class="w-64 h-64 object-contain"
           :style="{ filter: `drop-shadow(0 0 40px ${WX_COLOR[gua.wuxing]}40)` }"
+          @error="imageSrc = ''"
         />
       </div>
 

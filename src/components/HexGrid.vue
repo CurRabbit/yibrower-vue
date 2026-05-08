@@ -138,6 +138,7 @@ function getCardRadius(gua: GuaBase): string {
             :alt="gua.name"
             class="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
             loading="lazy"
+            @error="(e) => (e.currentTarget as HTMLImageElement).style.display = 'none'"
           />
         </div>
       </div>

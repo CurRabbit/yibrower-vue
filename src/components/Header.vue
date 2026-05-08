@@ -3,6 +3,7 @@ import SearchBar from './SearchBar.vue'
 import WuxingFilter from './WuxingFilter.vue'
 import PositionFilter from './PositionFilter.vue'
 import OrderFilter from './OrderFilter.vue'
+import ThemePanel from './ThemePanel.vue'
 import type { Wuxing } from '@/types'
 import type { GuaOrder } from '@/data/gua-data'
 
@@ -12,7 +13,6 @@ defineProps<{
   position: string
   trigram: string
   totalGuas: number
-  theme: string
   order: GuaOrder
 }>()
 
@@ -21,16 +21,8 @@ const emit = defineEmits<{
   'update:wuxing': [v: Wuxing | 'all']
   'update:position': [v: string]
   'update:trigram': [b: string]
-  'update:theme': [v: string]
   'update:order': [v: GuaOrder]
 }>()
-
-const THEMES = [
-  { key: 'default',  label: '金', color: '#c8961e' },
-  { key: 'ink',      label: '墨', color: '#6b5d4d' },
-  { key: 'celadon',  label: '瓷', color: '#5a8878' },
-  { key: 'vermilion', label: '朱', color: '#9a6840' },
-]
 </script>
 
 <template>
@@ -63,24 +55,7 @@ const THEMES = [
       <SearchBar :value="searchValue" @update:value="emit('update:searchValue', $event)" />
 
       <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
-        <!-- Theme switcher -->
-        <div class="flex items-center gap-1">
-          <button
-            v-for="t in THEMES"
-            :key="t.key"
-            @click="emit('update:theme', t.key)"
-            :title="t.key === 'default' ? '默认金色' : t.key === 'ink' ? '水墨' : t.key === 'celadon' ? '青瓷' : '紫禁'"
-            :style="{
-              width: 26, height: 26, borderRadius: 6,
-              border: theme === t.key ? `1.5px solid ${t.color}` : '1px solid var(--border)',
-              background: theme === t.key ? `${t.color}18` : 'var(--surface)',
-              color: theme === t.key ? t.color : 'var(--ink-faint)',
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
-              cursor: 'pointer', transition: 'all 0.2s ease',
-              boxShadow: theme === t.key ? `0 0 8px ${t.color}40` : 'none',
-            }"
-          >{{ t.label }}</button>
-        </div>
+        <ThemePanel />
         <!-- Counter -->
         <span class="text-xs flex-shrink-0 pl-1" style="color: var(--ink-faint); letter-spacing: 0.1em">
           {{ totalGuas }} 卦

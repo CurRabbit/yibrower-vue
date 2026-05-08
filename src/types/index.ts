@@ -10,6 +10,8 @@ export interface GuaBase {
   binary: string
   guaci: string
   yaoci: string[]
+  xiangci?: string
+  tuanc?: string
 }
 
 export interface GuaWithMedia extends GuaBase {

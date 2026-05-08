@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { GuaBase } from '@/types'
 
 const props = defineProps<{
@@ -12,19 +12,20 @@ const current = ref(0)
 const total = computed(() => props.imageUrls.length)
 const lightboxOpen = ref(false)
 const imgLoaded = ref(false)
+const imgLoading = ref(false)
+
+// 重置加载状态：每次切换图片时触发
+watch(current, () => { imgLoading.value = false })
 
 function prev() {
-  imgLoaded.value = false
   current.value = current.value > 0 ? current.value - 1 : props.imageUrls.length - 1
 }
 
 function next() {
-  imgLoaded.value = false
   current.value = current.value < props.imageUrls.length - 1 ? current.value + 1 : 0
 }
 
 function goTo(i: number) {
-  imgLoaded.value = false
   current.value = i
 }
 
@@ -57,8 +58,8 @@ onUnmounted(() => {
   <div :class="props.class" class="flex flex-col gap-2">
     <!-- Single image with swipe area -->
     <div class="relative w-full overflow-hidden rounded-lg bg-black/30 cursor-zoom-in" style="aspect-ratio: 4/3;" @click="openLightbox(current)">
-      <!-- Loading skeleton -->
-      <div v-if="!imgLoaded" class="absolute inset-0 flex items-center justify-center">
+      <!-- Loading spinner -->
+      <div v-if="imgLoading" class="absolute inset-0 flex items-center justify-center z-10">
         <div class="w-8 h-8 border-2 rounded-full animate-spin" style="border-color: var(--gold); border-top-color: transparent" />
       </div>
       <img
@@ -66,8 +67,10 @@ onUnmounted(() => {
         :src="imageUrls[current]"
         :alt="`${gua.name} ${current + 1}`"
         class="w-full h-full object-contain transition-opacity duration-300"
-        :class="imgLoaded ? 'opacity-100' : 'opacity-0'"
-        @load="imgLoaded = true"
+        :class="imgLoading ? 'opacity-0' : 'opacity-100'"
+        @loadstart="imgLoading = true"
+        @load="imgLoading = false"
+        @error="imgLoading = false"
       />
 
       <!-- Zoom hint -->
