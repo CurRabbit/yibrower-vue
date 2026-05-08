@@ -8,12 +8,13 @@ const focused = ref(false)
 </script>
 
 <template>
-  <div class="relative" style="width: 140px; flex-shrink: 0; min-width: 0">
+  <!-- Mobile: wider search bar, focus expand -->
+  <div class="relative" style="flex: 1; min-width: 0; max-width: 320px">
     <div
       class="absolute inset-0 rounded-full pointer-events-none transition-all duration-300"
       :style="{
         opacity: focused ? 1 : 0,
-        boxShadow: '0 0 0 3px rgba(212,168,67,0.12)',
+        boxShadow: '0 0 0 3px color-mix(in oklab, var(--atm-color) 12%, transparent)',
       }"
     />
     <div class="relative flex items-center">
@@ -24,16 +25,16 @@ const focused = ref(false)
       <input
         type="text"
         :value="value"
-        placeholder="搜索…"
+        placeholder="搜索卦象…"
         class="w-full rounded-full text-sm transition-all"
         :style="{
-          padding: '7px 16px 7px 32px',
-          background: focused ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
-          border: `1px solid ${focused ? 'rgba(212,168,67,0.38)' : 'rgba(180,150,80,0.14)'}`,
+          padding: '7px 32px 7px 32px',
+          background: focused ? 'var(--surface-2)' : 'var(--surface)',
+          border: `1px solid ${focused ? 'color-mix(in oklab, var(--atm-color) 38%, transparent)' : 'var(--border-mid)'}`,
           color: 'var(--ink)',
           outline: 'none',
           letterSpacing: '0.02em',
-          boxShadow: focused ? 'inset 0 1px 3px rgba(0,0,0,0.2)' : 'none',
+          boxShadow: focused ? 'inset 0 1px 3px rgba(0,0,0,0.2), 0 0 12px color-mix(in oklab, var(--atm-color) 8%, transparent)' : 'none',
         }"
         @input="emit('update:value', ($event.target as HTMLInputElement).value)"
         @focus="focused = true"
@@ -42,7 +43,7 @@ const focused = ref(false)
       <button
         v-if="value"
         class="absolute right-3 rounded-full flex items-center justify-center cursor-pointer transition-all"
-        style="width: 16px; height: 16px; font-size: 10px; line-height: 1; color: var(--ink-faint); background: rgba(180,150,80,0.1)"
+        style="width: 16px; height: 16px; font-size: 10px; line-height: 1; color: var(--ink-faint); background: var(--surface-2)"
         @mouseenter="($event.target as HTMLElement).style.color = 'var(--ink)'"
         @mouseleave="($event.target as HTMLElement).style.color = 'var(--ink-faint)'"
         @click="emit('update:value', '')"

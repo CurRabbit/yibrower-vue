@@ -3,7 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import type { Wuxing, Position } from '@/types'
 import type { GuaBase } from '@/types'
 import { GUA_DATA } from '@/data/gua-data'
-import { fetchGuaList, toGuaBase } from '@/api'
+import { WX_COLOR, WX_BG } from '@/data/wuxing-map'
+import { fetchGuaList, toGuaBase, fetchLatestImages } from '@/api'
 import ParticleCanvas from '@/components/ParticleCanvas.vue'
 import Header from '@/components/Header.vue'
 import HexGrid from '@/components/HexGrid.vue'
@@ -15,6 +16,7 @@ function getGuaKey(g: GuaBase): string {
 }
 
 const guaData = ref<GuaBase[] | null>(null)
+const guaImages = ref<Record<number, string>>({})
 const apiError = ref(false)
 
 const search = ref('')
@@ -54,9 +56,31 @@ onMounted(() => {
       apiError.value = true
       guaData.value = null
     })
+
+  fetchLatestImages()
+    .then(records => {
+      const map: Record<number, string> = {}
+      for (const r of records) {
+        if (r.status === 0 && r.storage_url) {
+          map[r.gua_num] = r.storage_url
+        }
+      }
+      guaImages.value = map
+    })
+    .catch(err => {
+      console.warn('[HomePage] fetchLatestImages failed:', err)
+    })
 })
 
 const sourceData = computed(() => guaData.value ?? GUA_DATA)
+
+// 今日卦象排第一
+const filteredWithTodayFirst = computed(() => {
+  if (!filtered.value.length || !todayGua.value) return filtered.value
+  const todayKey = getGuaKey(todayGua.value)
+  const rest = filtered.value.filter(g => getGuaKey(g) !== todayKey)
+  return [todayGua.value, ...rest]
+})
 
 const filtered = computed(() => {
   return sourceData.value.filter(g => {
@@ -144,6 +168,15 @@ function handleNext() {
 }
 
 const isLoading = computed(() => guaData.value === null && !apiError.value)
+
+// 今日卦象：根据月日从 64 卦中选一个
+const todayGua = computed<GuaBase | null>(() => {
+  if (!sourceData.value.length) return null
+  const now = new Date()
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+  const idx = dayOfYear % sourceData.value.length
+  return sourceData.value[idx]
+})
 </script>
 
 <template>
@@ -154,12 +187,56 @@ const isLoading = computed(() => guaData.value === null && !apiError.value)
     v-model:position="position"
     v-model:trigram="trigram"
     v-model:theme="theme"
-    :totalGuas="filtered.length"
+    :totalGuas="filteredWithTodayFirst.length"
   />
 
+  <!-- 今日卦象 Banner -->
+  <div
+    v-if="todayGua"
+    class="relative mx-4 my-3 px-5 py-4 rounded-2xl flex items-center gap-4 cursor-pointer transition-all duration-300 hover:scale-[1.01]"
+    style="background: linear-gradient(135deg, rgba(22,18,14,0.95), rgba(28,22,16,0.92)); border: 1px solid rgba(200,150,30,0.25); max-width: 680px; margin-left: auto; margin-right: auto; box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(200,150,30,0.1);"
+    @click="handleSelect(getGuaKey(todayGua))"
+  >
+    <!-- 左侧：卦象预览 -->
+    <div
+      class="flex-shrink-0 rounded-xl w-16 h-16 flex items-center justify-center text-3xl"
+      :style="{
+        background: `linear-gradient(135deg, ${WX_BG[todayGua.wuxing].replace('0.12','0.3')}, rgba(22,18,14,0.9))`,
+        border: `1px solid ${WX_COLOR[todayGua.wuxing]}40`,
+        boxShadow: `0 0 20px ${WX_COLOR[todayGua.wuxing]}20`,
+      }"
+    >
+      {{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷰','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][todayGua.num - 1] }}
+    </div>
+
+    <!-- 中间：卦名 + 卦辞 -->
+    <div class="flex-1 min-w-0">
+      <div class="text-xs font-medium mb-1" style="color: rgba(200,150,30,0.7); letter-spacing: 0.2em">今日卦象</div>
+      <div class="text-xl font-bold mb-0.5" :style="{ color: WX_COLOR[todayGua.wuxing] }">{{ todayGua.name }}</div>
+      <div class="text-xs truncate" style="color: var(--ink-faint)">{{ todayGua.guaci.slice(0, 30) }}{{ todayGua.guaci.length > 30 ? '…' : '' }}</div>
+    </div>
+
+    <!-- 右侧：爻符 + 箭头 -->
+    <div class="flex-shrink-0 flex flex-col items-center gap-1">
+      <div class="leading-none" style="font-size: 11px; color: var(--ink-faint)">
+        <span
+          v-for="(b, idx) in [...todayGua.binary].reverse()"
+          :key="idx"
+          :style="{
+            color: b === '1' ? WX_COLOR[todayGua.wuxing] : `${WX_COLOR[todayGua.wuxing]}60`,
+            display: 'block',
+            textAlign: 'center',
+            textShadow: b === '1' ? `0 0 8px ${WX_COLOR[todayGua.wuxing]}60` : 'none',
+          }"
+        >{{ b === '1' ? '—' : '‑‑' }}</span>
+      </div>
+      <div class="text-sm opacity-40 mt-1">›</div>
+    </div>
+  </div>
+
   <main
-    style="position: relative; z-index: 1; padding: 16px 16px 48px"
-    class="md:!px-6 md:!py-8 lg:!px-[max(24px,calc((100%-1200px)/2))] lg:!py-10"
+    style="position: relative; z-index: 1; padding: 16px 16px 32px"
+    class="md:!px-6 md:!py-8 lg:!px-[max(24px,calc((100%-1200px)/2))] lg:!py-10 lg:!pb-16"
   >
     <!-- Loading -->
     <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center gap-3">
@@ -175,7 +252,7 @@ const isLoading = computed(() => guaData.value === null && !apiError.value)
     </div>
 
     <!-- Grid -->
-    <HexGrid v-else :guas="filtered" :onSelect="handleSelect" />
+    <HexGrid v-else :guas="filteredWithTodayFirst" :onSelect="handleSelect" :imageMap="guaImages" />
   </main>
 
   <!-- GuaDetail modal -->
@@ -191,6 +268,7 @@ const isLoading = computed(() => guaData.value === null && !apiError.value)
         :guaData="sourceData"
         @close="handleClose"
         @immersion="handleImmersion"
+        class="w-full max-w-5xl !my-0"
       />
     </div>
   </Teleport>

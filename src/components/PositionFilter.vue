@@ -39,11 +39,11 @@ const positionLabel = computed(() =>
     <!-- Position tabs -->
     <div
       class="relative px-2 py-1 rounded"
-      style="background: rgba(255,255,255,0.02); border: 1px solid rgba(180,150,80,0.08)"
+      style="background: var(--surface-2); border: 1px solid var(--border)"
     >
       <div
         class="absolute bottom-0 left-0 right-0 h-px"
-        style="background: linear-gradient(90deg, transparent, rgba(212,168,67,0.18), transparent)"
+        style="background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--atm-color) 18%, transparent), transparent)"
       />
       <div class="flex gap-0.5">
         <button
@@ -53,19 +53,19 @@ const positionLabel = computed(() =>
           class="relative px-2 py-0.5 rounded text-[11px] cursor-pointer transition-all duration-200"
           :style="props.active === tab.value
             ? {
-                background: 'rgba(212,168,67,0.18)',
-                color: 'var(--gold-bright)',
+                background: 'color-mix(in oklab, var(--atm-color) 18%, transparent)',
+                color: 'var(--atm-color)',
                 fontWeight: 800,
                 letterSpacing: '0.06em',
-                border: '1px solid rgba(212,168,67,0.65)',
-                boxShadow: '0 0 20px rgba(212,168,67,0.35), 0 0 40px rgba(212,168,67,0.15), inset 0 1px 0 rgba(255,255,255,0.08)',
+                border: '1px solid color-mix(in oklab, var(--atm-color) 65%, transparent)',
+                boxShadow: '0 0 20px color-mix(in oklab, var(--atm-color) 35%, transparent), 0 0 40px color-mix(in oklab, var(--atm-color) 15%, transparent), inset 0 1px 0 rgba(255,255,255,0.08)',
                 transform: 'scale(1.08)',
               }
             : {
-                background: 'rgba(255,255,255,0.01)',
-                color: 'rgba(180,150,80,0.25)',
+                background: 'var(--surface)',
+                color: 'var(--ink-faint)',
                 letterSpacing: '0.04em',
-                border: '1px solid rgba(180,150,80,0.08)',
+                border: '1px solid var(--border)',
                 fontWeight: 500,
                 transform: 'scale(1)',
               }"
@@ -84,16 +84,16 @@ const positionLabel = computed(() =>
         :style="props.trigram === tri.value
           ? {
               background: tri.bg,
-              color: 'var(--gold-bright)',
-              border: '1px solid rgba(212,168,67,0.70)',
-              boxShadow: '0 0 16px rgba(212,168,67,0.50), 0 0 30px rgba(212,168,67,0.25), 0 0 50px rgba(212,168,67,0.10)',
+              color: 'var(--atm-color)',
+              border: '1px solid color-mix(in oklab, var(--atm-color) 70%, transparent)',
+              boxShadow: '0 0 16px color-mix(in oklab, var(--atm-color) 50%, transparent), 0 0 30px color-mix(in oklab, var(--atm-color) 25%, transparent), 0 0 50px color-mix(in oklab, var(--atm-color) 10%, transparent)',
               fontSize: '14px',
               transform: 'scale(1.15)',
             }
           : {
-              background: 'rgba(255,255,255,0.02)',
-              color: 'rgba(180,150,80,0.25)',
-              border: '1px solid rgba(180,150,80,0.08)',
+              background: 'var(--surface)',
+              color: 'var(--ink-faint)',
+              border: '1px solid var(--border)',
               fontSize: '13px',
               transform: 'scale(1)',
             }"
@@ -104,7 +104,7 @@ const positionLabel = computed(() =>
         v-if="props.trigram"
         @click="emit('update:trigram', '')"
         class="w-5 h-5 rounded-full flex items-center justify-center cursor-pointer flex-shrink-0 ml-0.5 transition-all duration-150"
-        style="background: rgba(180,150,80,0.08); color: var(--ink-faint); font-size: 9px; border: 1px solid rgba(180,150,80,0.06)"
+        style="background: var(--surface-2); color: var(--ink-faint); font-size: 9px; border: 1px solid var(--border)"
         title="清除筛选"
       >✕</button>
     </div>

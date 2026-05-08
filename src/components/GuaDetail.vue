@@ -31,12 +31,11 @@ const zongGua = computed(() => props.guaData.find(g => g.num === getZong(props.g
 const huGua = computed(() => props.guaData.find(g => g.wuxing === props.gua.wuxing && g.num !== props.gua.num))
 
 const yaoList = computed(() => props.gua.yaoci)
-const upperYao = computed(() => [
-  { label: '五', text: yaoList.value[4], yang: props.gua.binary[4] === '1' },
+// Order: 上(5) → 四(3) → 三(2) → 五(4) → 二(1) → 初(0) — top-to-bottom reading
+const yaoAll = computed(() => [
   { label: '上', text: yaoList.value[5], yang: props.gua.binary[5] === '1' },
   { label: '四', text: yaoList.value[3], yang: props.gua.binary[3] === '1' },
-])
-const lowerYao = computed(() => [
+  { label: '五', text: yaoList.value[4], yang: props.gua.binary[4] === '1' },
   { label: '三', text: yaoList.value[2], yang: props.gua.binary[2] === '1' },
   { label: '二', text: yaoList.value[1], yang: props.gua.binary[1] === '1' },
   { label: '初', text: yaoList.value[0], yang: props.gua.binary[0] === '1' },
@@ -64,64 +63,64 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
 
 <template>
   <div
-    class="relative w-full max-w-5xl rounded-2xl overflow-hidden"
+    class="relative w-full max-w-5xl rounded-lg overflow-hidden flex flex-col"
     :style="{
       background: 'linear-gradient(160deg, #1e1915 0%, #161210 100%)',
       border: `1px solid ${wuxingColor}25`,
       boxShadow: `0 32px 100px rgba(0,0,0,0.85), 0 0 60px ${wuxingColor}08, inset 0 1px 0 ${wuxingColor}15`,
       animation: 'slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      maxHeight: '92vh',
     }"
     @click.stop
   >
     <!-- Top accent line -->
-    <div class="absolute inset-x-0 top-0 h-0.5" :style="{ background: `linear-gradient(90deg, transparent, ${wuxingColor}88, transparent)` }" />
+    <div class="absolute inset-x-0 top-0 h-0.5 flex-shrink-0" :style="{ background: `linear-gradient(90deg, transparent, ${wuxingColor}88, transparent)` }" />
 
     <!-- Header -->
-    <div class="flex items-center justify-between px-8 py-6" style="border-bottom: 1px solid rgba(180,150,80,0.08)">
-      <div class="flex items-center gap-5">
-        <div
-          class="w-20 h-20 rounded-xl flex items-center justify-center overflow-hidden"
-          :style="{ background: WX_BG[gua.wuxing], border: `1px solid ${WX_BG[gua.wuxing].replace('0.12', '0.3')}` }"
-        >
-          <img :src="`/yi/assets/${key}/images/${key}.png`" :alt="gua.name" class="w-full h-full object-contain p-1" />
+    <div class="flex items-center justify-between px-6 py-5 lg:px-8 lg:py-6 flex-shrink-0"    style="border-bottom: 1px solid var(--border)">
+      <div class="flex items-center gap-4 lg:gap-5">
+        <!-- HexBar: hidden on mobile, shown on lg+ -->
+        <div class="hidden lg:block">
+          <HexBar :gua="gua" />
         </div>
         <div>
-          <div class="flex items-baseline gap-3">
-            <h2 class="text-4xl font-serif leading-none" style="color: var(--gold-bright)">{{ gua.name }}</h2>
-            <span class="text-xl font-serif" style="color: var(--ink-light)">{{ gua.pinyin }}</span>
+          <div class="flex items-baseline gap-2.5 lg:gap-3">
+            <h2 class="text-2xl lg:text-4xl font-serif leading-none" style="color: var(--gold-bright)">{{ gua.name }}</h2>
+            <span class="text-base lg:text-xl font-serif hidden sm:inline" style="color: var(--ink-light)">{{ gua.pinyin }}</span>
             <span
-              class="px-2.5 py-1 rounded-full text-xs font-medium"
+              class="px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg text-xs font-medium"
               :style="{ backgroundColor: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}35` }"
             >{{ WX_MAP[gua.wuxing] }}</span>
           </div>
-          <div class="flex items-center gap-4 mt-1.5 text-sm" style="color: var(--ink-faint)">
+          <div class="flex items-center gap-3 mt-0.5 text-xs lg:text-sm" style="color: var(--ink-faint)">
             <span>第 {{ gua.num }} 卦</span>
-            <span class="font-mono tracking-widest" style="color: var(--gold-dim)">{{ gua.binary }}</span>
+            <span class="font-mono tracking-widest hidden sm:inline" style="color: var(--gold-dim)">{{ gua.binary }}</span>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 lg:gap-3">
         <button
           @click="onImmersion"
-          class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+          class="flex items-center gap-1.5 lg:gap-2 px-3 lg:px-5 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all hover:opacity-90"
           style="background: linear-gradient(135deg, #b83a28, #8c2a1a); color: #fff; box-shadow: 0 4px 16px rgba(184,58,40,0.3)"
         >
-          <span>◈</span> 沉浸体验
+          <span>◈</span> <span class="hidden sm:inline">沉浸体验</span><span class="sm:hidden">沉浸</span>
         </button>
         <button
           @click="onClose"
-          class="w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-colors"
-          style="background: rgba(255,255,255,0.05); color: var(--ink-faint); border: 1px solid rgba(180,150,80,0.1)"
+          class="w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center text-lg transition-colors"
+          style="background: var(--surface); color: var(--ink-faint); border: 1px solid var(--border)"
           aria-label="关闭"
         >×</button>
       </div>
     </div>
 
-    <!-- Body -->
-    <div class="flex gap-5 p-6">
-      <!-- Left -->
-      <div class="w-44 flex-shrink-0 flex flex-col gap-4">
+    <!-- Body: sidebar + content on lg+, stacked on mobile -->
+    <div class="flex gap-0 lg:gap-5 p-4 lg:p-6 flex-1 min-h-0 overflow-y-auto">
+
+      <!-- Left sidebar: hidden on mobile, shown on lg+ -->
+      <div class="hidden lg:flex w-44 flex-shrink-0 flex-col gap-4">
         <HexBar :gua="gua" class="w-full" />
 
         <!-- Relations -->
@@ -154,84 +153,68 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
         </div>
       </div>
 
-      <!-- Right -->
+      <!-- Right: content -->
       <div class="flex-1 flex flex-col min-w-0">
         <!-- Tab nav -->
-        <div class="flex gap-1 mb-4">
+        <div class="flex gap-1 mb-3 lg:mb-4">
           <button
             v-for="tab in tabs"
             :key="tab.key"
             @click="activeTab = tab.key"
-            class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm transition-all"
+            class="flex items-center gap-1 lg:gap-1.5 px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm transition-all flex-1 justify-center"
             :style="activeTab === tab.key
               ? { background: `linear-gradient(135deg, ${wuxingColor}20, ${wuxingColor}10)`, color: wuxingColor, border: `1px solid ${wuxingColor}35` }
-              : { background: 'rgba(255,255,255,0.03)', color: 'var(--ink-faint)', border: '1px solid rgba(180,150,80,0.06)' }"
+              : { background: 'var(--surface)', color: 'var(--ink-faint)', border: '1px solid var(--border)' }"
           >
-            <span class="text-xs">{{ tab.icon }}</span>
+            <span class="text-[10px] lg:text-xs">{{ tab.icon }}</span>
             {{ tab.label }}
           </button>
         </div>
 
         <!-- Tab content -->
         <div
-          class="flex-1 rounded-xl overflow-hidden tab-content-enter"
+          class="flex-1 rounded-lg overflow-hidden tab-content-enter"
           :style="{ background: 'rgba(10,8,6,0.7)', border: `1px solid ${wuxingColor}12`, backdropFilter: 'blur(12px)' }"
         >
           <!-- Guaci -->
-          <div v-if="activeTab === 'guaci'" class="relative h-full flex items-center justify-center p-10">
+          <div v-if="activeTab === 'guaci'" class="relative h-full flex items-center justify-center p-6 lg:p-10">
             <span v-for="(char, i) in ['╔','╗','╚','╝']" :key="i"
-              class="absolute text-2xl opacity-20"
-              :style="{ color: wuxingColor, top: i < 2 ? 16 : undefined, bottom: i >= 2 ? 16 : undefined, left: i === 0 || i === 2 ? 16 : undefined, right: i === 1 || i === 3 ? 16 : undefined }">{{ char }}</span>
-            <div class="absolute left-1/2 top-8 bottom-8 w-px" :style="{ background: `linear-gradient(to bottom, transparent, ${wuxingColor}30 20%, ${wuxingColor}30 80%, transparent)` }" />
+              class="absolute text-xl lg:text-2xl opacity-20"
+              :style="{ color: wuxingColor, top: i < 2 ? 12 : undefined, bottom: i >= 2 ? 12 : undefined, left: i === 0 || i === 2 ? 12 : undefined, right: i === 1 || i === 3 ? 12 : undefined }">{{ char }}</span>
+            <div class="absolute left-1/2 top-6 bottom-6 w-px lg:hidden" :style="{ background: `linear-gradient(to bottom, transparent, ${wuxingColor}30 20%, ${wuxingColor}30 80%, transparent)` }" />
             <div class="relative z-10 text-center max-w-xs">
-              <div class="text-[10px] tracking-[0.4em] mb-6 uppercase opacity-40" :style="{ color: wuxingColor }">周易 · {{ gua.name }}</div>
-              <p class="text-[1.35rem] font-serif leading-[2.2] indent-8" style="color: var(--gold-pale)">{{ gua.guaci }}</p>
-              <div class="mt-8 mx-auto w-24 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
-              <div class="mt-3 text-xs tracking-widest opacity-30" :style="{ color: wuxingColor }">{{ gua.pinyin }} · 第{{ gua.num }}卦</div>
+              <div class="text-[10px] lg:text-[10px] tracking-[0.4em] mb-4 lg:mb-6 uppercase opacity-40" :style="{ color: wuxingColor }">周易 · {{ gua.name }}</div>
+              <p class="text-base lg:text-[1.35rem] font-serif leading-[2.2] indent-8" style="color: var(--gold-pale)">{{ gua.guaci }}</p>
+              <div class="mt-6 lg:mt-8 mx-auto w-16 lg:w-24 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
+              <div class="mt-2 lg:mt-3 text-[10px] lg:text-xs tracking-widest opacity-30" :style="{ color: wuxingColor }">{{ gua.pinyin }} · 第{{ gua.num }}卦</div>
             </div>
           </div>
 
-          <!-- Yaoci -->
-          <div v-if="activeTab === 'yaoci'" class="h-full flex flex-col">
-            <div class="h-0.5 mx-6 mt-5 rounded-full"
-              :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, ${wuxingColor}40, transparent)` }" />
-            <div class="flex-1 flex gap-4 px-6 pb-5 pt-4">
-              <div class="flex-1 flex flex-col gap-2">
-                <div v-for="yao in upperYao" :key="yao.label"
-                  class="flex items-start gap-2.5 p-3 rounded-lg"
-                  :style="{ borderLeft: `2px ${yao.yang ? 'solid' : 'dashed'} ${wuxingColor}50`, background: yao.yang ? `${wuxingColor}06` : 'rgba(255,255,255,0.02)' }">
-                  <div class="w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
-                    :style="{ background: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}30` }">{{ yao.label }}</div>
-                  <p class="text-[13px] leading-[1.8]" style="color: var(--ink-light)">{{ yao.text }}</p>
-                </div>
-              </div>
-              <div class="w-px self-stretch rounded-full" :style="{ background: `${wuxingColor}12` }" />
-              <div class="flex-1 flex flex-col gap-2">
-                <div v-for="yao in lowerYao" :key="yao.label"
-                  class="flex items-start gap-2.5 p-3 rounded-lg"
-                  :style="{ borderLeft: `2px ${yao.yang ? 'solid' : 'dashed'} ${wuxingColor}50`, background: yao.yang ? `${wuxingColor}06` : 'rgba(255,255,255,0.02)' }">
-                  <div class="w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
-                    :style="{ background: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}30` }">{{ yao.label }}</div>
-                  <p class="text-[13px] leading-[1.8]" style="color: var(--ink-light)">{{ yao.text }}</p>
-                </div>
-              </div>
+          <!-- Yaoci: single column on all screen sizes, top-to-bottom order -->
+          <div v-if="activeTab === 'yaoci'" class="flex flex-col gap-2 p-4 lg:p-5">
+            <div v-for="yao in yaoAll" :key="yao.label"
+              class="flex items-start gap-2.5 p-3 rounded-lg"
+              :style="{ borderLeft: `2px ${yao.yang ? 'solid' : 'dashed'} ${wuxingColor}50`, background: yao.yang ? `${wuxingColor}06` : 'var(--surface)' }">
+              <div class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
+                :style="{ background: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}30` }">{{ yao.label }}</div>
+              <p class="text-[13px] leading-[1.8] flex-1" style="color: var(--ink-light)">{{ yao.text }}</p>
             </div>
           </div>
 
           <!-- Gallery -->
-          <div v-if="activeTab === 'gallery'" class="p-4">
-            <div v-if="galleryImages === null" class="h-72 flex items-center justify-center">
+          <div v-if="activeTab === 'gallery'" class="p-3 lg:p-4">
+            <div v-if="galleryImages === null" class="h-48 lg:h-72 flex items-center justify-center">
               <div class="w-8 h-8 border-2 rounded-full animate-spin" style="border-color: var(--gold); border-top-color: transparent" />
             </div>
-            <div v-else-if="galleryImages.length === 0" class="h-72 flex flex-col items-center justify-center gap-2" style="color: var(--ink-faint)">
+            <div v-else-if="galleryImages.length === 0" class="h-48 lg:h-72 flex flex-col items-center justify-center gap-2" style="color: var(--ink-faint)">
               <span class="text-3xl opacity-30">◈</span>
               <p class="text-sm">暂无图片</p>
             </div>
-            <Gallery v-else :gua="gua" :imageUrls="galleryImages" class="w-full h-72" />
+            <Gallery v-else :gua="gua" :imageUrls="galleryImages" class="w-full h-48 lg:h-72" />
           </div>
 
           <!-- Music -->
-          <div v-if="activeTab === 'music'" class="p-5">
+          <div v-if="activeTab === 'music'" class="p-4 lg:p-5">
             <AudioPlayer :gua="gua" class="w-full" />
           </div>
         </div>

@@ -63,3 +63,19 @@ export async function fetchImageList(params: {
   if (!res.ok) throw new Error(`fetchImageList failed: ${res.status}`)
   return res.json()
 }
+
+export interface ImageRecordDto {
+  id: number
+  gua_num: number
+  theme_name: string
+  storage_url: string
+  storage_path: string
+  filename: string
+  status: number
+}
+
+export async function fetchLatestImages(): Promise<ImageRecordDto[]> {
+  const res = await fetch(`${BASE}/images/latest`)
+  if (!res.ok) throw new Error(`fetchLatestImages failed: ${res.status}`)
+  return res.json()
+}

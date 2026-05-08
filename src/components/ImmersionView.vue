@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import type { GuaBase } from '@/types'
 import { WX_COLOR, WX_MAP } from '@/data/wuxing-map'
+import { fetchImageList } from '@/api'
 
 const props = defineProps<{
   gua: GuaBase
@@ -12,6 +13,7 @@ const props = defineProps<{
 }>()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const imageSrc = ref<string>('')
 let animFrame = 0
 
 interface Particle {
@@ -84,26 +86,37 @@ function resize() {
   particles.value = initParticles(canvas.width, canvas.height)
 }
 
-onMounted(() => {
+onMounted(async () => {
   resize()
   window.addEventListener('resize', resize)
   animFrame = requestAnimationFrame(animate)
+
+  // 从 DB 读取该卦最新一张图
+  const key = `gua_${String(props.gua.num).padStart(2, '0')}_${props.gua.pinyin}`
+  imageSrc.value = `/yi/assets/${key}/images/${key}.png`
+  try {
+    const records = await fetchImageList({ gua_num: props.gua.num, limit: 1 })
+    const active = records.filter((r: any) => r.status === 0)
+    if (active.length > 0) {
+      const rec = active[0] as any
+      imageSrc.value = rec.storage_url ?? `/yi/assets/${rec.storage_path}`
+    }
+  } catch {
+    // fallback 保持 hardcode 路径
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', resize)
   cancelAnimationFrame(animFrame)
 })
-
-const key = `gua_${String(props.gua.num).padStart(2, '0')}_${props.gua.pinyin}`
-const imageSrc = `/yi/assets/${key}/images/${key}.png`
 </script>
 
 <template>
   <div
     :class="props.class"
     class="fixed inset-0 z-50 flex items-center justify-center"
-    style="background: rgba(13,10,7,0.96)"
+    style="background: color-mix(in oklab, var(--bg) 96%, transparent)"
   >
     <canvas
       ref="canvasRef"
@@ -114,6 +127,7 @@ const imageSrc = `/yi/assets/${key}/images/${key}.png`
     <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-2xl px-8">
       <div class="mb-8">
         <img
+          v-if="imageSrc"
           :src="imageSrc"
           :alt="gua.name"
           class="w-64 h-64 object-contain"
@@ -154,7 +168,7 @@ const imageSrc = `/yi/assets/${key}/images/${key}.png`
         <button
           @click="onPrev"
           class="w-12 h-12 rounded-full flex items-center justify-center transition-all"
-          style="background: rgba(255,255,255,0.04); border: 1px solid rgba(180,150,80,0.15); color: var(--ink-light)"
+          style="background: var(--surface-2); border: 1px solid var(--border-mid); color: var(--ink-light)"
           aria-label="上一卦"
         >◀</button>
         <div class="text-center">
@@ -164,7 +178,7 @@ const imageSrc = `/yi/assets/${key}/images/${key}.png`
         <button
           @click="onNext"
           class="w-12 h-12 rounded-full flex items-center justify-center transition-all"
-          style="background: rgba(255,255,255,0.04); border: 1px solid rgba(180,150,80,0.15); color: var(--ink-light)"
+          style="background: var(--surface-2); border: 1px solid var(--border-mid); color: var(--ink-light)"
           aria-label="下一卦"
         >▶</button>
       </div>
@@ -173,7 +187,7 @@ const imageSrc = `/yi/assets/${key}/images/${key}.png`
     <button
       @click="onExit"
       class="absolute top-8 right-8 w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all"
-      style="background: rgba(255,255,255,0.04); border: 1px solid rgba(180,150,80,0.12); color: var(--ink-faint)"
+      style="background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-faint)"
       aria-label="退出"
     >×</button>
   </div>
