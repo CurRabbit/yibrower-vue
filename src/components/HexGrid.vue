@@ -30,7 +30,7 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
       @click="onSelect(getGuaKey(gua))"
     >
       <div
-        class="relative overflow-hidden transition-all duration-300 group-hover:shadow-hover group-hover:-translate-y-1"
+        class="relative overflow-hidden transition-all duration-300 group-hover:shadow-hover group-hover:-translate-y-1 max-w-[130px]"
         :style="{
           background: getCardVariant(gua) === 'balanced'
             ? `linear-gradient(135deg, ${WX_BG[gua.wuxing].replace('0.12', '0.10')}, rgba(22,18,14,0.96))`
@@ -43,8 +43,8 @@ function getCardVariant(gua: GuaBase): 'gateway' | 'balanced' | 'recessive' {
           transition: 'border-color 0.3s ease, box-shadow 0.3s ease, border-top 0.3s ease, border-left 0.3s ease',
         }"
       >
-        <!-- 卦象区域：缩小水印，提升对比度 -->
-        <div class="relative w-full aspect-square flex items-center justify-center overflow-hidden">
+        <!-- 卦象区域：改扁比例 + max-width -->
+        <div class="relative w-full aspect-video flex items-center justify-center overflow-hidden">
           <div class="text-xl leading-none transition-opacity duration-300 group-hover:opacity-20" style="color: var(--ink-faint); opacity: 0.45; user-select: none;">
             {{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][gua.num - 1] }}
           </div>
