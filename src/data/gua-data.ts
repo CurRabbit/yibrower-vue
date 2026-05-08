@@ -66,3 +66,99 @@ export const GUA_DATA: GuaBase[] = [
   { num: 63, name: '既济', pinyin: 'jiji',   wuxing: 'shui', binary: '101010', guaci: '亨小利贞初吉终乱', yaoci: ['元永贞无咎之首败于待时终以亨通利涉大川','润以引水溢注满之象雨雪先飘而后散世道变而复明','妇贞厉月几望君子征凶','濡其尾吝亦有言终以名誉进用也','有戎有获贞吉','濡其首厉吉'] },
   { num: 64, name: '未济', pinyin: 'weiji',   wuxing: 'huo',  binary: '010101', guaci: '亨小狐汔济濡其尾无攸利', yaoci: ['未跨首尾腋水过河未济啼饥求袂不失循序渐进','濡尾无攸利渐而起','即鹿无虞不如山谷之新人','月经无止六三观型占卜','亨往来方可信高朋满座','小狐汔济濡其尾有攸利见险能止齐衷时'] },
 ]
+
+// ── 排序模式 ───────────────────────────────────────────────
+
+export type GuaOrder = 'number' | 'xugu' | 'bagua' | 'jingfang' | 'minggua'
+
+export const GUA_ORDER_LABELS: Record<GuaOrder, string> = {
+  number:    '序号',    // 1-64 默认方图
+  xugu:      '序卦',    // 序卦传：上经30 + 下经34
+  bagua:     '先天',    // 伏羲先天序（乾坤定位）
+  jingfang:  '京房',    // 京房八宫
+  minggua:   '明卦',    // 梅花易数：按卦数 / 分类
+}
+
+/** 伏羲先天序：乾坤定位，纵向按上卦(外)→下卦(内)展开 */
+export function orderByBagua(guas: GuaBase[]): GuaBase[] {
+  return [...guas].sort((a, b) => {
+    const oa = parseInt(a.binary.slice(0, 3), 2) // 外卦
+    const ob = parseInt(b.binary.slice(0, 3), 2)
+    if (oa !== ob) return oa - ob
+    const ia = parseInt(a.binary.slice(3), 2)   // 内卦
+    const ib = parseInt(b.binary.slice(3), 2)
+    return ia - ib
+  })
+}
+
+/** 京房八宫：每宫一世至归魂，八纯卦各领 */
+export function orderByJingfang(guas: GuaBase[]): GuaBase[] {
+  const GONG = ['乾', '震', '坎', '艮', '坤', '巽', '离', '兑'] as const
+  // 宫头（纯卦）序号：乾1 震51 坎29 艮52 坤2 巽57 离30 兑58
+  const GONG_HEAD = [1, 51, 29, 52, 2, 57, 30, 58] as const
+
+  const map = Object.fromEntries(guas.map(g => [g.num, g]))
+
+  const result: GuaBase[] = []
+  for (let gi = 0; gi < 8; gi++) {
+    const head = map[GONG_HEAD[gi]]
+    if (!head) continue
+    result.push(head) // 宫头 = 八纯卦
+
+    // 找出同宫其他卦（外卦同宫头外卦）
+    const gongGuas = guas.filter(g => {
+      if (g.num === GONG_HEAD[gi]) return false
+      // 八宫按"宫"以外卦为准：乾宫外卦皆为111，震宫外卦皆为001等
+      // 但京房八宫世应体系复杂，这里用外卦+五行关系粗排
+      // 简化：同一宫 = 外卦相同 or 存在卦变关系
+      // 更准的京房序按官化爻变，取近似：同外卦为一组
+      return g.binary.slice(0, 3) === head.binary.slice(0, 3)
+    })
+
+    // 组内按内卦二进制值排序
+    gongGuas.sort((a, b) => parseInt(a.binary.slice(3), 2) - parseInt(b.binary.slice(3), 2))
+    result.push(...gongGuas)
+  }
+  return result
+}
+
+/** 明卦 / 梅花：以卦数模 8 分八方，配卦气旺相 */
+export function orderByMinggua(guas: GuaBase[]): GuaBase[] {
+  // 梅花易数：体卦不动，用卦变化
+  // 简化排法：按 上卦*8 + 下卦 重建顺序
+  return [...guas].sort((a, b) => {
+    const aouter = parseInt(a.binary.slice(0, 3), 2)
+    const bouter = parseInt(b.binary.slice(0, 3), 2)
+    if (aouter !== bouter) return aouter - bouter
+    const ain = parseInt(a.binary.slice(3), 2)
+    const bin = parseInt(b.binary.slice(3), 2)
+    return ain - bin
+  })
+}
+
+/** 序卦传顺序（传统上经30卦 + 下经34卦）*/
+export const XUGU_ORDER = [
+  // 上经（30）
+  1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
+  21,22,23,24,25,26,27,28,29,30,
+  // 下经（34）
+  31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,
+  51,52,53,54,55,56,57,58,59,60,61,62,63,64,
+]
+
+export function orderByXugu(guas: GuaBase[]): GuaBase[] {
+  const map = Object.fromEntries(guas.map(g => [g.num, g]))
+  return XUGU_ORDER.map(n => map[n]).filter(Boolean)
+}
+
+/** 根据 key 排序 */
+export function sortGuas(guas: GuaBase[], order: GuaOrder): GuaBase[] {
+  switch (order) {
+    case 'number':  return [...guas].sort((a, b) => a.num - b.num)
+    case 'bagua':   return orderByBagua(guas)
+    case 'jingfang': return orderByJingfang(guas)
+    case 'minggua': return orderByMinggua(guas)
+    case 'xugu':    return orderByXugu(guas)
+    default:        return [...guas].sort((a, b) => a.num - b.num)
+  }
+}

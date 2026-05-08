@@ -2,7 +2,9 @@
 import SearchBar from './SearchBar.vue'
 import WuxingFilter from './WuxingFilter.vue'
 import PositionFilter from './PositionFilter.vue'
+import OrderFilter from './OrderFilter.vue'
 import type { Wuxing } from '@/types'
+import type { GuaOrder } from '@/data/gua-data'
 
 defineProps<{
   searchValue: string
@@ -11,6 +13,7 @@ defineProps<{
   trigram: string
   totalGuas: number
   theme: string
+  order: GuaOrder
 }>()
 
 const emit = defineEmits<{
@@ -19,6 +22,7 @@ const emit = defineEmits<{
   'update:position': [v: string]
   'update:trigram': [b: string]
   'update:theme': [v: string]
+  'update:order': [v: GuaOrder]
 }>()
 
 const THEMES = [
@@ -93,6 +97,7 @@ const THEMES = [
         @update:active="emit('update:position', $event)"
         @update:trigram="emit('update:trigram', $event)"
       />
+      <OrderFilter :order="order" @update:order="emit('update:order', $event)" />
     </div>
   </header>
 </template>

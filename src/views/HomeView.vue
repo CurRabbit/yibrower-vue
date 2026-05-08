@@ -5,6 +5,7 @@ import type { GuaBase } from '@/types'
 import { GUA_DATA } from '@/data/gua-data'
 import { WX_COLOR, WX_BG } from '@/data/wuxing-map'
 import { fetchGuaList, toGuaBase, fetchLatestImages } from '@/api'
+import { sortGuas, type GuaOrder } from '@/data/gua-data'
 import ParticleCanvas from '@/components/ParticleCanvas.vue'
 import Header from '@/components/Header.vue'
 import HexGrid from '@/components/HexGrid.vue'
@@ -26,6 +27,7 @@ const trigram = ref('')
 const selectedGua = ref<GuaBase | null>(null)
 const immersedGua = ref<GuaBase | null>(null)
 const theme = ref('default')
+const order = ref<GuaOrder>('number')
 
 // Sync wuxing filter to body[data-wx] for CSS atmosphere variables
 watch(wuxing, (v) => {
@@ -72,7 +74,10 @@ onMounted(() => {
     })
 })
 
-const sourceData = computed(() => guaData.value ?? GUA_DATA)
+const sourceData = computed(() => {
+  const raw = guaData.value ?? GUA_DATA
+  return sortGuas(raw, order.value)
+})
 
 // 今日卦象排第一
 const filteredWithTodayFirst = computed(() => {
@@ -140,6 +145,10 @@ function handleThemeChange(v: string) {
   }
 }
 
+function handleOrderChange(v: GuaOrder) {
+  order.value = v
+}
+
 function handleClose() {
   selectedGua.value = null
 }
@@ -187,6 +196,7 @@ const todayGua = computed<GuaBase | null>(() => {
     v-model:position="position"
     v-model:trigram="trigram"
     v-model:theme="theme"
+    v-model:order="order"
     :totalGuas="filteredWithTodayFirst.length"
   />
 
