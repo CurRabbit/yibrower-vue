@@ -82,6 +82,14 @@ function navigateTo(g: GuaBase) {
   props.onNavigate(g)
 }
 
+// Go back to a specific index in history stack
+function goBackTo(index: number) {
+  const target = historyStack.value.splice(index, 1)[0]
+  if (target) {
+    props.onNavigate(target)
+  }
+}
+
 function goBack() {
   const prev = historyStack.value.pop()
   if (prev) {
@@ -110,14 +118,20 @@ function goBack() {
     />
 
     <!-- ── Header (always visible) ── -->
-    <div class="flex-shrink-0 px-4 py-3 flex items-center gap-3" style="border-bottom: 1px solid var(--border)">
-      <!-- Back button (only when history exists) -->
-      <button
-        v-if="historyStack.length > 0"
-        @click="goBack"
-        class="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-colors flex-shrink-0"
-        style="background: var(--surface); color: var(--ink-faint); border: 1px solid var(--border)"
-      >‹</button>
+    <div class="flex-shrink-0 px-4 py-3 flex items-start gap-3" style="border-bottom: 1px solid var(--border)">
+      <!-- History trail: 需 > 讼 > 师 -->
+      <div v-if="historyStack.length > 0" class="flex items-center gap-1 flex-wrap text-[11px] mt-0.5" style="color: var(--ink-faint)">
+        <template v-for="(g, i) in historyStack" :key="g.num">
+          <button
+            @click="goBackTo(i)"
+            class="hover:underline transition-all"
+            style="color: var(--ink-light)"
+          >{{ g.name }}</button>
+          <span v-if="i < historyStack.length - 1">›</span>
+        </template>
+        <span class="mx-0.5 opacity-40">›</span>
+        <span :style="{ color: wuxingColor }">{{ currentGua.name }}</span>
+      </div>
 
       <!-- Hex bar: small on mobile -->
       <HexBar :gua="currentGua" class="flex-shrink-0" style="width: 56px;" />
