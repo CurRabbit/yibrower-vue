@@ -12,6 +12,8 @@ export interface GuaDto {
   binary: string
   guaci: string
   yaoci: string[]
+  xiangci?: string
+  tuanc?: string
 }
 
 export interface ThemeDto {
@@ -32,6 +34,8 @@ export function toGuaBase(dto: GuaDto) {
     binary: dto.binary,
     guaci: dto.guaci,
     yaoci: dto.yaoci ?? [],
+    xiangci: dto.xiangci,
+    tuanc: dto.tuanc,
   }
 }
 

@@ -16,9 +16,10 @@ const props = defineProps<{
   onNavigate: (gua: GuaBase) => void
 }>()
 
-type TabKey = 'guaci' | 'xiangci' | 'tuanc' | 'yaoci' | 'gallery' | 'music'
+type TabKey = 'guaci' | 'xiangci' | 'yaoci' | 'gallery' | 'music'
 const activeTab = ref<TabKey>('guaci')
 const galleryImages = ref<string[] | null>(null)
+const showYaoChangePanel = ref(false)
 
 // History stack for back navigation
 const historyStack = ref<GuaBase[]>([])
@@ -64,8 +65,7 @@ watch(activeTab, async (tab) => {
 // All text tabs: guaci is the default/first
 const textTabs: { key: TabKey; label: string }[] = [
   { key: 'guaci',   label: '卦辞' },
-  { key: 'xiangci', label: '象辞' },
-  { key: 'tuanc',   label: '彖辞' },
+  { key: 'xiangci', label: '象彖' },
   { key: 'yaoci',   label: '爻辞' },
 ]
 
@@ -84,7 +84,6 @@ function navigateTo(g: GuaBase) {
 
 // Go back to a specific index in history stack
 function goBackTo(index: number) {
-  // splice(index) removes from index onward, returns removed items
   const removed = historyStack.value.splice(index)
   const target = removed[0]
   if (target) {
@@ -92,10 +91,14 @@ function goBackTo(index: number) {
   }
 }
 
-function goBack() {
-  const prev = historyStack.value.pop()
-  if (prev) {
-    props.onNavigate(prev)
+// Jump to the gua resulting from flipping one yao (爻变)
+function navigateByYaoChange(yaoIdx: number) {
+  const binary = currentGua.value.binary.split('')
+  binary[yaoIdx] = binary[yaoIdx] === '1' ? '0' : '1'
+  const newBinary = binary.join('')
+  const target = props.guaData.find(g => g.binary === newBinary)
+  if (target) {
+    navigateTo(target)
   }
 }
 </script>
@@ -116,25 +119,31 @@ function goBack() {
     <div
       v-if="historyStack.length > 0"
       class="flex-shrink-0 flex items-center justify-center gap-1 text-[11px] py-1.5 px-4"
-      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border)"
+      style="background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border)"
     >
       <template v-for="(g, i) in historyStack" :key="g.num">
         <button
           @click="goBackTo(i)"
-          class="font-medium transition-all hover:brightness-125"
+          class="flex-shrink-0 text-[11px] font-medium transition-all hover:brightness-125"
           :style="{
-            color: `color-mix(in oklab, ${wuxingColor} ${30 + (i / historyStack.length) * 50}%, var(--ink-faint))`,
+            width: '44px',
+            color: `color-mix(in oklab, ${wuxingColor} 60%, var(--ink-light))`,
+            borderBottom: `1px solid color-mix(in oklab, ${wuxingColor} 40%, transparent)`,
           }"
         >{{ g.name }}</button>
         <span
-          class="font-light"
-          style="color: var(--ink-faint); opacity: 0.4"
+          class="font-light flex-shrink-0"
+          style="color: var(--ink-faint); opacity: 0.5"
         >›</span>
       </template>
-      <span class="mx-0.5" style="color: var(--ink-faint); opacity: 0.3">›</span>
+      <span class="mx-0.5 flex-shrink-0" style="color: var(--ink-faint); opacity: 0.3">›</span>
       <span
-        class="font-bold"
-        :style="{ color: wuxingColor, textShadow: `0 0 8px ${wuxingColor}60` }"
+        class="flex-shrink-0 text-[11px] font-bold"
+        :style="{
+          width: '44px',
+          color: wuxingColor,
+          borderBottom: `2px solid ${wuxingColor}`,
+        }"
       >{{ currentGua.name }}</span>
     </div>
 
@@ -167,6 +176,17 @@ function goBack() {
 
       <!-- Actions -->
       <div class="flex items-center gap-2 flex-shrink-0">
+        <!-- 爻变按钮 -->
+        <button
+          @click="showYaoChangePanel = !showYaoChangePanel"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+          :style="{
+            background: showYaoChangePanel ? `${wuxingColor}20` : 'var(--surface)',
+            color: wuxingColor,
+            border: `1px solid ${showYaoChangePanel ? wuxingColor + '60' : 'var(--border)'}`,
+            boxShadow: showYaoChangePanel ? `0 0 10px ${wuxingColor}30` : 'none',
+          }"
+        >变</button>
         <button
           @click="onImmersion"
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
@@ -178,6 +198,26 @@ function goBack() {
           style="background: var(--surface); color: var(--ink-faint); border: 1px solid var(--border)"
         >×</button>
       </div>
+    </div>
+
+    <!-- 爻变面板 -->
+    <div
+      v-if="showYaoChangePanel"
+      class="flex-shrink-0 flex items-center justify-center gap-2 py-2 px-4"
+      style="background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border)"
+    >
+      <div class="text-[10px] uppercase tracking-widest mr-1" style="color: var(--ink-faint)">爻变</div>
+      <button
+        v-for="(yao, idx) in yaoAll"
+        :key="idx"
+        @click="navigateByYaoChange(idx); showYaoChangePanel = false"
+        class="w-7 h-7 rounded text-[12px] font-bold transition-all hover:brightness-125"
+        :style="{
+          background: yao.yang ? `${wuxingColor}18` : 'var(--surface)',
+          border: `1px solid ${yao.yang ? wuxingColor + '50' : 'var(--border)'}`,
+          color: yao.yang ? wuxingColor : 'var(--ink-faint)',
+        }"
+      >{{ yao.label }}</button>
     </div>
 
     <!-- ── Tab nav ── -->
@@ -225,30 +265,24 @@ function goBack() {
         </div>
       </div>
 
-      <!-- Xiangci (象辞 / 大象) -->
-      <div v-else-if="activeTab === 'xiangci'" class="flex items-center justify-center min-h-full px-6 py-8">
-        <div class="text-center max-w-sm mx-auto">
-          <div class="text-[10px] tracking-[0.4em] mb-4 uppercase opacity-30" :style="{ color: wuxingColor }">
-            大象传
-          </div>
+      <!-- Xiangci + Tuanc (象彖) -->
+      <div v-else-if="activeTab === 'xiangci'" class="flex flex-col gap-6 px-6 py-8 items-center">
+        <!-- 象辞 (大象) -->
+        <div v-if="currentGua.xiangci" class="text-center max-w-sm">
+          <div class="text-[10px] tracking-[0.4em] mb-3 uppercase opacity-30" :style="{ color: wuxingColor }">象辞 · 大象</div>
           <p class="text-[1.05rem] font-serif leading-[2.4]" style="color: var(--gold-pale)">
-            {{ currentGua.xiangci || '象辞待补充' }}
+            {{ currentGua.xiangci }}
           </p>
-          <div class="mt-6 mx-auto w-16 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
         </div>
-      </div>
-
-      <!-- Tuanc (彖辞) -->
-      <div v-else-if="activeTab === 'tuanc'" class="flex items-center justify-center min-h-full px-6 py-8">
-        <div class="text-center max-w-sm mx-auto">
-          <div class="text-[10px] tracking-[0.4em] mb-4 uppercase opacity-30" :style="{ color: wuxingColor }">
-            彖传
-          </div>
-          <p class="text-[1rem] font-serif leading-[2.2]" style="color: var(--gold-pale)">
-            {{ currentGua.tuanc || '彖辞待补充' }}
+        <div v-if="currentGua.xiangci && currentGua.tuanc" class="w-12 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}40, transparent)` }" />
+        <!-- 彖辞 -->
+        <div v-if="currentGua.tuanc" class="text-center max-w-sm">
+          <div class="text-[10px] tracking-[0.4em] mb-3 uppercase opacity-30" :style="{ color: wuxingColor }">彖辞</div>
+          <p class="text-[0.95rem] font-serif leading-[2.2]" style="color: var(--gold-pale)">
+            {{ currentGua.tuanc }}
           </p>
-          <div class="mt-6 mx-auto w-16 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
         </div>
+        <div v-if="!currentGua.xiangci && !currentGua.tuanc" class="text-center" style="color: var(--ink-faint)">象彖待补充</div>
       </div>
 
       <!-- Yaoci -->
@@ -271,7 +305,7 @@ function goBack() {
       </div>
 
       <!-- Relations panel (shown alongside text content, clickable) -->
-      <div v-if="activeTab === 'guaci' || activeTab === 'xiangci' || activeTab === 'tuanc'" class="px-4 pb-4">
+      <div v-if="activeTab === 'guaci' || activeTab === 'xiangci'" class="px-4 pb-4">
         <div class="rounded-lg p-3" :style="{ background: `${wuxingColor}06`, border: `1px solid ${wuxingColor}18` }">
           <div class="text-[10px] uppercase tracking-widest mb-2" style="color: var(--ink-faint)">相关卦象 · 点击跳转</div>
           <div class="flex flex-wrap gap-2">
