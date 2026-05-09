@@ -215,7 +215,43 @@ const todayGua = computed<GuaBase | null>(() => {
     @click="handleSelect(getGuaKey(todayGua))"
   >
     <div class="today-banner-inner">
-      <!-- 左侧：卦象图片 -->
+      <!-- A：卦象（卦名 + 爻符） -->
+      <div class="flex flex-col justify-center gap-1">
+        <div
+          class="text-[10px] sm:text-xs font-medium tracking-[0.18em] uppercase"
+          style="color: color-mix(in oklab, var(--atm-color) 80%, var(--ink-light))"
+        >今日卦象</div>
+        <div
+          class="text-lg sm:text-xl font-bold gua-name-glow leading-tight"
+          :style="{ color: `var(--atm-color)` }"
+        >{{ todayGua.name }}</div>
+        <!-- 爻符横向排列 -->
+        <div class="flex items-center gap-0.5">
+          <span
+            v-for="(b, idx) in [...todayGua.binary].reverse()"
+            :key="idx"
+            :style="{
+              fontSize: '13px',
+              color: b === '1' ? 'var(--atm-color)' : 'var(--ink-faint)',
+              textShadow: b === '1' ? `0 0 6px color-mix(in oklab, var(--atm-color) 50%, transparent)` : 'none',
+            }"
+          >{{ b === '1' ? '—' : '–' }}</span>
+        </div>
+      </div>
+
+      <!-- B：其余文字（卦辞） -->
+      <div class="flex-1 min-w-0 flex flex-col justify-center">
+        <div
+          class="text-[11px] sm:text-xs"
+          style="color: var(--ink-light)"
+        >{{ todayGua.guaci.slice(0, 40) }}{{ todayGua.guaci.length > 40 ? '…' : '' }}</div>
+        <span
+          class="text-sm mt-1 transition-all duration-300"
+          style="color: var(--ink-faint)"
+        >›</span>
+      </div>
+
+      <!-- C：卦象图片 -->
       <div
         class="flex-shrink-0 rounded-2xl overflow-hidden flex items-center justify-center"
         :style="{
@@ -238,38 +274,6 @@ const todayGua = computed<GuaBase | null>(() => {
           class="text-4xl leading-none select-none"
           style="color: color-mix(in oklab, var(--atm-color) 60%, var(--ink))"
         >{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][todayGua.num - 1] }}</span>
-      </div>
-
-      <!-- 右侧：卦名 + 卦辞 + 爻符 -->
-      <div class="flex-1 min-w-0 flex flex-col justify-center">
-        <div
-          class="text-[10px] sm:text-xs font-medium mb-0.5 tracking-[0.18em] uppercase"
-          style="color: color-mix(in oklab, var(--atm-color) 80%, var(--ink-light))"
-        >今日卦象</div>
-        <div
-          class="text-lg sm:text-xl font-bold mb-0.5 gua-name-glow leading-tight"
-          :style="{ color: `var(--atm-color)` }"
-        >{{ todayGua.name }}</div>
-        <div
-          class="text-[11px] sm:text-xs mb-1.5"
-          style="color: var(--ink-light)"
-        >{{ todayGua.guaci.slice(0, 32) }}{{ todayGua.guaci.length > 32 ? '…' : '' }}</div>
-        <!-- 爻符横向排列 -->
-        <div class="flex items-center gap-0.5">
-          <span
-            v-for="(b, idx) in [...todayGua.binary].reverse()"
-            :key="idx"
-            :style="{
-              fontSize: '13px',
-              color: b === '1' ? 'var(--atm-color)' : 'var(--ink-faint)',
-              textShadow: b === '1' ? `0 0 6px color-mix(in oklab, var(--atm-color) 50%, transparent)` : 'none',
-            }"
-          >{{ b === '1' ? '—' : '–' }}</span>
-          <span
-            class="text-sm ml-1 transition-all duration-300 group-hover:translate-x-0.5"
-            style="color: var(--ink-faint)"
-          >›</span>
-        </div>
       </div>
     </div>
   </div>
