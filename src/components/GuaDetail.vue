@@ -13,11 +13,15 @@ const props = defineProps<{
   guaData: GuaBase[]
   onClose: () => void
   onImmersion: () => void
+  onNavigate: (gua: GuaBase) => void
 }>()
 
 type TabKey = 'guaci' | 'xiangci' | 'tuanc' | 'yaoci' | 'gallery' | 'music'
 const activeTab = ref<TabKey>('guaci')
 const galleryImages = ref<string[] | null>(null)
+
+// History stack for back navigation
+const historyStack = ref<GuaBase[]>([])
 
 function getGuaKey(g: GuaBase): string {
   return `gua_${String(g.num).padStart(2, '0')}_${g.pinyin}`
@@ -29,14 +33,17 @@ const cuoGua = computed(() => props.guaData.find(g => g.num === getCuo(props.gua
 const zongGua = computed(() => props.guaData.find(g => g.num === getZong(props.gua.num)))
 const huGua  = computed(() => props.guaData.find(g => g.wuxing === props.gua.wuxing && g.num !== props.gua.num))
 
-const yaoList = computed(() => props.gua.yaoci)
+// 当前显示的卦象（可能是栈中的某一个）
+const currentGua = computed(() => props.gua)
+
+const yaoList = computed(() => currentGua.value.yaoci)
 const yaoAll = computed(() => [
-  { label: '上', text: yaoList.value[5], yang: props.gua.binary[5] === '1' },
-  { label: '四', text: yaoList.value[3], yang: props.gua.binary[3] === '1' },
-  { label: '五', text: yaoList.value[4], yang: props.gua.binary[4] === '1' },
-  { label: '三', text: yaoList.value[2], yang: props.gua.binary[2] === '1' },
-  { label: '二', text: yaoList.value[1], yang: props.gua.binary[1] === '1' },
-  { label: '初', text: yaoList.value[0], yang: props.gua.binary[0] === '1' },
+  { label: '上', text: yaoList.value[5], yang: currentGua.value.binary[5] === '1' },
+  { label: '四', text: yaoList.value[3], yang: currentGua.value.binary[3] === '1' },
+  { label: '五', text: yaoList.value[4], yang: currentGua.value.binary[4] === '1' },
+  { label: '三', text: yaoList.value[2], yang: currentGua.value.binary[2] === '1' },
+  { label: '二', text: yaoList.value[1], yang: currentGua.value.binary[1] === '1' },
+  { label: '初', text: yaoList.value[0], yang: currentGua.value.binary[0] === '1' },
 ])
 
 watch(activeTab, async (tab) => {
@@ -44,7 +51,7 @@ watch(activeTab, async (tab) => {
   galleryImages.value = null
   try {
     const records: { status: number; storage_url?: string; storage_path: string }[] =
-      await fetchImageList({ gua_num: props.gua.num, limit: 20 })
+      await fetchImageList({ gua_num: currentGua.value.num, limit: 20 })
     const urls = records
       .filter(r => r.status === 0)
       .map(r => r.storage_url ?? `/yi/assets_physical/${r.storage_path}`)
@@ -68,6 +75,19 @@ const mediaTabs: { key: TabKey; label: string; icon: string }[] = [
 ]
 
 const allTabs = computed(() => [...textTabs, ...mediaTabs])
+
+// Navigate to a related gua (push current to history, emit navigate)
+function navigateTo(g: GuaBase) {
+  historyStack.value.push(currentGua.value)
+  props.onNavigate(g)
+}
+
+function goBack() {
+  const prev = historyStack.value.pop()
+  if (prev) {
+    props.onNavigate(prev)
+  }
+}
 </script>
 
 <template>
@@ -79,6 +99,7 @@ const allTabs = computed(() => [...textTabs, ...mediaTabs])
       boxShadow: `0 32px 100px rgba(0,0,0,0.85), 0 0 60px ${wuxingColor}08, inset 0 1px 0 ${wuxingColor}15`,
       animation: 'slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       maxHeight: '94vh',
+      paddingTop: 'env(safe-area-inset-top)',
     }"
     @click.stop
   >
@@ -90,22 +111,30 @@ const allTabs = computed(() => [...textTabs, ...mediaTabs])
 
     <!-- ── Header (always visible) ── -->
     <div class="flex-shrink-0 px-4 py-3 flex items-center gap-3" style="border-bottom: 1px solid var(--border)">
+      <!-- Back button (only when history exists) -->
+      <button
+        v-if="historyStack.length > 0"
+        @click="goBack"
+        class="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-colors flex-shrink-0"
+        style="background: var(--surface); color: var(--ink-faint); border: 1px solid var(--border)"
+      >‹</button>
+
       <!-- Hex bar: small on mobile -->
-      <HexBar :gua="gua" class="flex-shrink-0" style="width: 56px;" />
+      <HexBar :gua="currentGua" class="flex-shrink-0" style="width: 56px;" />
 
       <!-- Title block -->
       <div class="flex-1 min-w-0">
         <div class="flex items-baseline gap-2">
-          <h2 class="text-2xl font-serif leading-none" style="color: var(--gold-bright)">{{ gua.name }}</h2>
-          <span class="text-sm font-serif" style="color: var(--ink-light)">{{ gua.pinyin }}</span>
+          <h2 class="text-2xl font-serif leading-none" style="color: var(--gold-bright)">{{ currentGua.name }}</h2>
+          <span class="text-sm font-serif" style="color: var(--ink-light)">{{ currentGua.pinyin }}</span>
           <span
             class="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
             :style="{ backgroundColor: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}35` }"
-          >{{ WX_MAP[gua.wuxing] }}</span>
+          >{{ WX_MAP[currentGua.wuxing] }}</span>
         </div>
         <div class="flex items-center gap-2 mt-0.5 text-[11px]" style="color: var(--ink-faint)">
-          <span>第 {{ gua.num }} 卦</span>
-          <span class="hidden sm:inline font-mono tracking-widest" style="color: var(--gold-dim)">{{ gua.binary }}</span>
+          <span>第 {{ currentGua.num }} 卦</span>
+          <span class="hidden sm:inline font-mono tracking-widest" style="color: var(--gold-dim)">{{ currentGua.binary }}</span>
         </div>
       </div>
 
@@ -157,14 +186,14 @@ const allTabs = computed(() => [...textTabs, ...mediaTabs])
       <div v-if="activeTab === 'guaci'" class="flex items-center justify-center min-h-full px-6 py-8">
         <div class="text-center max-w-sm mx-auto">
           <div class="text-[10px] tracking-[0.4em] mb-4 uppercase opacity-30" :style="{ color: wuxingColor }">
-            周易 · {{ gua.name }}
+            周易 · {{ currentGua.name }}
           </div>
           <p class="text-[1.1rem] font-serif leading-[2.2] indent-8" style="color: var(--gold-pale)">
-            {{ gua.guaci }}
+            {{ currentGua.guaci }}
           </p>
           <div class="mt-6 mx-auto w-16 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
           <div class="mt-2 text-[10px] tracking-widest opacity-25" :style="{ color: wuxingColor }">
-            {{ gua.pinyin }} · 第{{ gua.num }}卦
+            {{ currentGua.pinyin }} · 第{{ currentGua.num }}卦
           </div>
         </div>
       </div>
@@ -176,7 +205,7 @@ const allTabs = computed(() => [...textTabs, ...mediaTabs])
             大象传
           </div>
           <p class="text-[1.05rem] font-serif leading-[2.4]" style="color: var(--gold-pale)">
-            {{ gua.xiangci || '象辞待补充' }}
+            {{ currentGua.xiangci || '象辞待补充' }}
           </p>
           <div class="mt-6 mx-auto w-16 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
         </div>
@@ -189,7 +218,7 @@ const allTabs = computed(() => [...textTabs, ...mediaTabs])
             彖传
           </div>
           <p class="text-[1rem] font-serif leading-[2.2]" style="color: var(--gold-pale)">
-            {{ gua.tuanc || '彖辞待补充' }}
+            {{ currentGua.tuanc || '彖辞待补充' }}
           </p>
           <div class="mt-6 mx-auto w-16 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
         </div>
@@ -214,23 +243,38 @@ const allTabs = computed(() => [...textTabs, ...mediaTabs])
         </div>
       </div>
 
-      <!-- Relations panel (shown alongside text content) -->
+      <!-- Relations panel (shown alongside text content, clickable) -->
       <div v-if="activeTab === 'guaci' || activeTab === 'xiangci' || activeTab === 'tuanc'" class="px-4 pb-4">
         <div class="rounded-lg p-3" :style="{ background: `${wuxingColor}06`, border: `1px solid ${wuxingColor}18` }">
-          <div class="text-[10px] uppercase tracking-widest mb-2" style="color: var(--ink-faint)">相关卦象</div>
+          <div class="text-[10px] uppercase tracking-widest mb-2" style="color: var(--ink-faint)">相关卦象 · 点击跳转</div>
           <div class="flex flex-wrap gap-2">
-            <div class="flex items-center gap-2 px-2 py-1 rounded text-xs" :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }">
+            <button
+              v-if="cuoGua"
+              @click="navigateTo(cuoGua)"
+              class="flex items-center gap-2 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+              :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+            >
               <span style="color: var(--ink-faint)">{{ REL_LABELS.cuo }}</span>
-              <span class="font-medium" :style="{ color: wuxingColor }">{{ cuoGua?.name ?? '—' }}</span>
-            </div>
-            <div class="flex items-center gap-2 px-2 py-1 rounded text-xs" :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }">
+              <span class="font-medium" :style="{ color: wuxingColor }">{{ cuoGua.name }}</span>
+            </button>
+            <button
+              v-if="zongGua"
+              @click="navigateTo(zongGua)"
+              class="flex items-center gap-2 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+              :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+            >
               <span style="color: var(--ink-faint)">{{ REL_LABELS.zong }}</span>
-              <span class="font-medium" :style="{ color: wuxingColor }">{{ zongGua?.name ?? '—' }}</span>
-            </div>
-            <div v-if="huGua" class="flex items-center gap-2 px-2 py-1 rounded text-xs" :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }">
+              <span class="font-medium" :style="{ color: wuxingColor }">{{ zongGua.name }}</span>
+            </button>
+            <button
+              v-if="huGua"
+              @click="navigateTo(huGua)"
+              class="flex items-center gap-2 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+              :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+            >
               <span style="color: var(--ink-faint)">{{ REL_LABELS.hu }}</span>
               <span class="font-medium" :style="{ color: wuxingColor }">{{ huGua.name }}</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -244,12 +288,12 @@ const allTabs = computed(() => [...textTabs, ...mediaTabs])
           <span class="text-3xl opacity-30">◈</span>
           <p class="text-sm">暂无图片</p>
         </div>
-        <Gallery v-else :gua="gua" :imageUrls="galleryImages" class="w-full h-64" />
+        <Gallery v-else :gua="currentGua" :imageUrls="galleryImages" class="w-full h-64" />
       </div>
 
       <!-- Music -->
       <div v-else-if="activeTab === 'music'" class="p-4">
-        <AudioPlayer :gua="gua" class="w-full" />
+        <AudioPlayer :gua="currentGua" class="w-full" />
       </div>
 
     </div>

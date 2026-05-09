@@ -168,6 +168,10 @@ function handleImmersion() {
   }
 }
 
+function handleNavigate(g: GuaBase) {
+  selectedGua.value = g
+}
+
 function handleExitImmersion() {
   immersedGua.value = null
 }
@@ -312,6 +316,7 @@ const todayGua = computed<GuaBase | null>(() => {
         :guaData="sourceData"
         @close="handleClose"
         @immersion="handleImmersion"
+        @navigate="handleNavigate"
         class="w-full max-w-5xl !my-0"
       />
     </div>
