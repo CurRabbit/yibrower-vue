@@ -84,7 +84,9 @@ function navigateTo(g: GuaBase) {
 
 // Go back to a specific index in history stack
 function goBackTo(index: number) {
-  const target = historyStack.value.splice(index, 1)[0]
+  // splice(index) removes from index onward, returns removed items
+  const removed = historyStack.value.splice(index)
+  const target = removed[0]
   if (target) {
     props.onNavigate(target)
   }
