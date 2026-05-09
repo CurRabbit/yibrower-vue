@@ -119,13 +119,21 @@ function goBack() {
       <template v-for="(g, i) in historyStack" :key="g.num">
         <button
           @click="goBackTo(i)"
-          class="hover:underline transition-all"
-          style="color: var(--ink-light)"
+          class="font-medium transition-all hover:brightness-125"
+          :style="{
+            color: `color-mix(in oklab, ${wuxingColor} ${30 + (i / historyStack.length) * 50}%, var(--ink-faint))`,
+          }"
         >{{ g.name }}</button>
-        <span style="color: var(--ink-faint)">›</span>
+        <span
+          class="font-light"
+          style="color: var(--ink-faint); opacity: 0.4"
+        >›</span>
       </template>
-      <span class="opacity-40">›</span>
-      <span :style="{ color: wuxingColor }">{{ currentGua.name }}</span>
+      <span class="mx-0.5" style="color: var(--ink-faint); opacity: 0.3">›</span>
+      <span
+        class="font-bold"
+        :style="{ color: wuxingColor, textShadow: `0 0 8px ${wuxingColor}60` }"
+      >{{ currentGua.name }}</span>
     </div>
 
     <!-- Top accent line -->
