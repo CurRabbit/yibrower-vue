@@ -107,10 +107,27 @@ function goBack() {
       boxShadow: `0 32px 100px rgba(0,0,0,0.85), 0 0 60px ${wuxingColor}08, inset 0 1px 0 ${wuxingColor}15`,
       animation: 'slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       maxHeight: '94vh',
-      paddingTop: 'env(safe-area-inset-top)',
     }"
     @click.stop
   >
+    <!-- Top history trail bar (floating above everything) -->
+    <div
+      v-if="historyStack.length > 0"
+      class="flex-shrink-0 flex items-center justify-center gap-1 text-[11px] py-1.5 px-4"
+      style="background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border)"
+    >
+      <template v-for="(g, i) in historyStack" :key="g.num">
+        <button
+          @click="goBackTo(i)"
+          class="hover:underline transition-all"
+          style="color: var(--ink-light)"
+        >{{ g.name }}</button>
+        <span style="color: var(--ink-faint)">›</span>
+      </template>
+      <span class="opacity-40">›</span>
+      <span :style="{ color: wuxingColor }">{{ currentGua.name }}</span>
+    </div>
+
     <!-- Top accent line -->
     <div
       class="flex-shrink-0 h-px"
@@ -118,21 +135,7 @@ function goBack() {
     />
 
     <!-- ── Header (always visible) ── -->
-    <div class="flex-shrink-0 px-4 py-3 flex items-start gap-3" style="border-bottom: 1px solid var(--border)">
-      <!-- History trail: 需 > 讼 > 师 -->
-      <div v-if="historyStack.length > 0" class="flex items-center gap-1 flex-wrap text-[11px] mt-0.5" style="color: var(--ink-faint)">
-        <template v-for="(g, i) in historyStack" :key="g.num">
-          <button
-            @click="goBackTo(i)"
-            class="hover:underline transition-all"
-            style="color: var(--ink-light)"
-          >{{ g.name }}</button>
-          <span v-if="i < historyStack.length - 1">›</span>
-        </template>
-        <span class="mx-0.5 opacity-40">›</span>
-        <span :style="{ color: wuxingColor }">{{ currentGua.name }}</span>
-      </div>
-
+    <div class="flex-shrink-0 px-4 py-3 flex items-center gap-3" style="border-bottom: 1px solid var(--border)">
       <!-- Hex bar: small on mobile -->
       <HexBar :gua="currentGua" class="flex-shrink-0" style="width: 56px;" />
 
