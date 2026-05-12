@@ -1,0 +1,12 @@
+[
+  {
+    "title": "Vue.js 3 Component Teleportation Tutorial | KoderHQ",
+    "href": "https://www.koderhq.com/tutorial/vue/component-teleport/",
+    "body": "Vue.js 3 Component Teleportation Tutorial ... The Vue team introduced a new feature in the Vue 3 core library called component teleporting ."
+  },
+  {
+    "title": "Vue Teleport Guide with Examples | Vue.js 3",
+    "href": "https://mdsaban.com/posts/vue-teleport-component/",
+    "body": "Vue Teleport is a built-in feature in Vue 3 that allows you to render a part of a component’s template in a different location in the DOM tree. This is achieved using a special component."
+  }
+]

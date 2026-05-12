@@ -2,11 +2,15 @@
 import { ref, computed, watch } from 'vue'
 import type { GuaBase } from '@/types'
 import { WX_COLOR, WX_MAP, WX_BG } from '@/data/wuxing-map'
-import { getCuo, getZong, REL_LABELS } from '@/data/relations'
+import { getCuo, getZong, getHu, REL_LABELS } from '@/data/relations'
 import { fetchImageList } from '@/api'
 import HexBar from './HexBar.vue'
 import Gallery from './Gallery.vue'
 import AudioPlayer from './AudioPlayer.vue'
+import { useShare } from '@/composables/useShare'
+import { playYaoClickIfEnabled } from '@/composables/useSound'
+
+const { shareGua } = useShare()
 
 const props = defineProps<{
   gua: GuaBase
@@ -16,10 +20,59 @@ const props = defineProps<{
   onNavigate: (gua: GuaBase) => void
 }>()
 
+// 变爻翻页动画 key
+const flipKey = ref(0)
+watch(() => props.gua.num, () => {
+  flipKey.value++
+})
+
+// E3: 移动端滑动手势导航（上一卦/下一卦）
+// Bug修复：按钮触摸时 touchend 也会触发 swipe 判断（点击时手指可能横向漂移 ≥60px）。
+// 修复：touchstart 记录触达元素是否是按钮，touchend 检测到按钮则跳过 navigate。
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const touchStartEl = ref<EventTarget | null>(null)
+
+function handleTouchStart(e: TouchEvent) {
+  touchStartX.value = e.touches[0]?.clientX ?? 0
+  touchStartY.value = e.touches[0]?.clientY ?? 0
+  touchStartEl.value = e.target as EventTarget | null
+}
+
+function handleTouchEnd(e: TouchEvent) {
+  // 如果触达元素是按钮/交互元素，跳过 swipe 导航（避免按钮点击被误判为 swipe）
+  const el = touchStartEl.value as HTMLElement | null
+  if (el?.closest('button, [role="button"], a, input, select, textarea')) return
+  const dx = e.changedTouches[0].clientX - touchStartX.value
+  const dy = e.changedTouches[0].clientY - touchStartY.value
+  // 滑动距离不足或纵向滑动为主 → 不是横向 swipe，忽略
+  if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return
+  const direction = dx < 0 ? 1 : -1 // 左滑→下一卦，右滑→上一卦
+  const target = props.guaData.find(g => g.num === props.gua.num + direction)
+  if (target) navigateTo(target)
+}
+
+// B2: 爻位点击涟漪动画
+const rippleIdx = ref<number | null>(null)
+function handleYaoClick(idx: number) {
+  playYaoClickIfEnabled()
+  rippleIdx.value = idx
+  setTimeout(() => { rippleIdx.value = null }, 600)
+}
+
+// 退场动画控制：关闭时先播动画再通知父组件
+const isLeaving = ref(false)
+function handleClose() {
+  isLeaving.value = true
+  setTimeout(() => {
+    isLeaving.value = false
+    props.onClose()
+  }, 250)
+}
+
 type TabKey = 'guaci' | 'xiangci' | 'yaoci' | 'gallery' | 'music'
 const activeTab = ref<TabKey>('guaci')
 const galleryImages = ref<string[] | null>(null)
-const showYaoChangePanel = ref(false)
 
 // History stack for back navigation
 const historyStack = ref<GuaBase[]>([])
@@ -31,20 +84,21 @@ function getGuaKey(g: GuaBase): string {
 const wuxingColor = computed(() => WX_COLOR[props.gua.wuxing])
 
 const cuoGua = computed(() => props.guaData.find(g => g.num === getCuo(props.gua.num)))
-const zongGua = computed(() => props.guaData.find(g => g.num === getZong(props.gua.num)))
-const huGua  = computed(() => props.guaData.find(g => g.wuxing === props.gua.wuxing && g.num !== props.gua.num))
+const zongNum = computed(() => getZong(props.gua.num))
+const zongGua = computed(() => zongNum.value != null ? props.guaData.find(g => g.num === zongNum.value) : null)
+const huGua  = computed(() => props.guaData.find(g => g.num === getHu(props.gua.num)))
 
 // 当前显示的卦象（可能是栈中的某一个）
 const currentGua = computed(() => props.gua)
 
 const yaoList = computed(() => currentGua.value.yaoci)
 const yaoAll = computed(() => [
-  { label: '上', text: yaoList.value[5], yang: currentGua.value.binary[5] === '1' },
-  { label: '四', text: yaoList.value[3], yang: currentGua.value.binary[3] === '1' },
-  { label: '五', text: yaoList.value[4], yang: currentGua.value.binary[4] === '1' },
-  { label: '三', text: yaoList.value[2], yang: currentGua.value.binary[2] === '1' },
-  { label: '二', text: yaoList.value[1], yang: currentGua.value.binary[1] === '1' },
-  { label: '初', text: yaoList.value[0], yang: currentGua.value.binary[0] === '1' },
+  { label: '初', text: yaoList.value[0], yang: currentGua.value.binary[5] === '1' },
+  { label: '二', text: yaoList.value[1], yang: currentGua.value.binary[4] === '1' },
+  { label: '三', text: yaoList.value[2], yang: currentGua.value.binary[3] === '1' },
+  { label: '四', text: yaoList.value[3], yang: currentGua.value.binary[2] === '1' },
+  { label: '五', text: yaoList.value[4], yang: currentGua.value.binary[1] === '1' },
+  { label: '上', text: yaoList.value[5], yang: currentGua.value.binary[0] === '1' },
 ])
 
 watch(activeTab, async (tab) => {
@@ -92,9 +146,12 @@ function goBackTo(index: number) {
 }
 
 // Jump to the gua resulting from flipping one yao (爻变)
+// 爻变: yaoAll[0]=初爻→binary[5], yaoAll[5]=上爻→binary[0]
+const YAO_BIT_IDX = [5, 4, 3, 2, 1, 0]
+
 function navigateByYaoChange(yaoIdx: number) {
   const binary = currentGua.value.binary.split('')
-  binary[yaoIdx] = binary[yaoIdx] === '1' ? '0' : '1'
+  binary[YAO_BIT_IDX[yaoIdx]] = binary[YAO_BIT_IDX[yaoIdx]] === '1' ? '0' : '1'
   const newBinary = binary.join('')
   const target = props.guaData.find(g => g.binary === newBinary)
   if (target) {
@@ -105,15 +162,16 @@ function navigateByYaoChange(yaoIdx: number) {
 
 <template>
   <div
-    class="relative w-full rounded-xl overflow-hidden flex flex-col px-4 sm:px-0"
+    :class="isLeaving ? 'gua-detail-leave' : 'gua-detail-enter'"
+    class="relative w-full rounded-lg overflow-hidden flex flex-col"
     :style="{
       background: 'linear-gradient(160deg, #1e1915 0%, #161210 100%)',
       border: `1px solid ${wuxingColor}25`,
       boxShadow: `0 32px 100px rgba(0,0,0,0.85), 0 0 60px ${wuxingColor}08, inset 0 1px 0 ${wuxingColor}15`,
-      animation: 'slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       maxHeight: '94vh',
     }"
-    @click.stop
+    @touchstart.passive="handleTouchStart($event)"
+    @touchend.passive="handleTouchEnd($event)"
   >
     <!-- Top history trail bar (floating above everything) -->
     <div
@@ -123,7 +181,7 @@ function navigateByYaoChange(yaoIdx: number) {
     >
       <template v-for="(g, i) in historyStack" :key="g.num">
         <button
-          @click="goBackTo(i)"
+          @click.stop="goBackTo(i)"
           class="flex-shrink-0 text-[11px] font-medium transition-all hover:brightness-125"
           :style="{
             width: '44px',
@@ -154,12 +212,12 @@ function navigateByYaoChange(yaoIdx: number) {
     />
 
     <!-- ── Header (always visible) ── -->
-    <div class="flex-shrink-0 px-4 py-3 flex items-center gap-3" style="border-bottom: 1px solid var(--border)">
+    <div class="flex-shrink-0 px-6 py-3 flex items-center gap-3" style="border-bottom: 1px solid var(--border)">
       <!-- Hex bar: small on mobile -->
-      <HexBar :gua="currentGua" class="flex-shrink-0" style="width: 56px;" />
+      <HexBar :gua="currentGua" :key="flipKey" class="flex-shrink-0" />
 
       <!-- Title block -->
-      <div class="flex-1 min-w-0">
+      <div :key="flipKey" class="flex-1 min-w-0 gua-symbol-flip">
         <div class="flex items-baseline gap-2">
           <h2 class="text-2xl font-serif leading-none" style="color: var(--gold-bright)">{{ currentGua.name }}</h2>
           <span class="text-sm font-serif" style="color: var(--ink-light)">{{ currentGua.pinyin }}</span>
@@ -175,58 +233,34 @@ function navigateByYaoChange(yaoIdx: number) {
       </div>
 
       <!-- Actions -->
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <!-- 爻变按钮 -->
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <!-- ⑥ 分享 -->
         <button
-          @click="showYaoChangePanel = !showYaoChangePanel"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
-          :style="{
-            background: showYaoChangePanel ? `${wuxingColor}20` : 'var(--surface)',
-            color: wuxingColor,
-            border: `1px solid ${showYaoChangePanel ? wuxingColor + '60' : 'var(--border)'}`,
-            boxShadow: showYaoChangePanel ? `0 0 10px ${wuxingColor}30` : 'none',
-          }"
-        >变</button>
+          @click.stop="shareGua(currentGua)"
+          class="w-8 h-8 rounded flex items-center justify-center text-sm transition-all"
+          style="background: var(--surface); color: var(--ink-faint); border: 1px solid var(--border)"
+          title="分享"
+        >↗</button>
         <button
-          @click="onImmersion"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+          @click.stop="onImmersion"
+          class="px-3 py-1.5 rounded text-xs font-medium transition-all hover:opacity-90"
           style="background: linear-gradient(135deg, #b83a28, #8c2a1a); color: #fff; box-shadow: 0 4px 16px rgba(184,58,40,0.3)"
         >沉浸</button>
         <button
-          @click="onClose"
-          class="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-colors"
+          @click.stop="handleClose"
+          class="w-8 h-8 rounded flex items-center justify-center text-lg transition-colors"
           style="background: var(--surface); color: var(--ink-faint); border: 1px solid var(--border)"
         >×</button>
       </div>
     </div>
 
-    <!-- 爻变面板 -->
-    <div
-      v-if="showYaoChangePanel"
-      class="flex-shrink-0 flex items-center justify-center gap-2 py-2 px-4"
-      style="background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border)"
-    >
-      <div class="text-[10px] uppercase tracking-widest mr-1" style="color: var(--ink-faint)">爻变</div>
-      <button
-        v-for="(yao, idx) in yaoAll"
-        :key="idx"
-        @click="navigateByYaoChange(idx); showYaoChangePanel = false"
-        class="w-7 h-7 rounded text-[12px] font-bold transition-all hover:brightness-125"
-        :style="{
-          background: yao.yang ? `${wuxingColor}18` : 'var(--surface)',
-          border: `1px solid ${yao.yang ? wuxingColor + '50' : 'var(--border)'}`,
-          color: yao.yang ? wuxingColor : 'var(--ink-faint)',
-        }"
-      >{{ yao.label }}</button>
-    </div>
-
     <!-- ── Tab nav ── -->
-    <div class="flex-shrink-0 flex gap-1 px-3 py-2 flex-wrap" style="border-bottom: 1px solid rgba(255,255,255,0.06)">
+    <div class="flex-shrink-0 flex gap-1 px-6 py-2 flex-wrap" style="border-bottom: 1px solid rgba(255,255,255,0.06)">
       <button
         v-for="tab in textTabs"
         :key="tab.key"
-        @click="activeTab = tab.key"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+        @click.stop="activeTab = tab.key"
+        class="px-3 py-1.5 rounded text-xs font-medium transition-all"
         :style="activeTab === tab.key
           ? { background: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}35` }
           : { background: 'var(--surface)', color: 'var(--ink-faint)', border: '1px solid var(--border)' }"
@@ -238,8 +272,8 @@ function navigateByYaoChange(yaoIdx: number) {
       <button
         v-for="tab in mediaTabs"
         :key="tab.key"
-        @click="activeTab = tab.key"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+        @click.stop="activeTab = tab.key"
+        class="px-3 py-1.5 rounded text-xs font-medium transition-all"
         :style="activeTab === tab.key
           ? { background: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}35` }
           : { background: 'var(--surface)', color: 'var(--ink-faint)', border: '1px solid var(--border)' }"
@@ -247,115 +281,176 @@ function navigateByYaoChange(yaoIdx: number) {
     </div>
 
     <!-- ── Scrollable body ── -->
-    <div class="flex-1 min-h-0 overflow-y-auto">
+    <div class="flex-1 min-h-0 overflow-y-auto p-8">
 
-      <!-- Guaci -->
-      <div v-if="activeTab === 'guaci'" class="flex items-center justify-center min-h-full px-6 py-8">
-        <div class="text-center max-w-sm mx-auto">
-          <div class="text-[10px] tracking-[0.4em] mb-4 uppercase opacity-30" :style="{ color: wuxingColor }">
-            周易 · {{ currentGua.name }}
+      <Transition name="tab-content" mode="out-in">
+
+        <!-- Guaci -->
+        <div v-if="activeTab === 'guaci'" key="guaci" class="flex flex-col gap-6 items-center">
+          <div class="text-center max-w-sm mx-auto">
+            <div class="text-[10px] tracking-[0.4em] mb-4 uppercase opacity-30" :style="{ color: wuxingColor }">
+              周易 · {{ currentGua.name }}
+            </div>
+            <p class="text-[1.1rem] font-serif leading-[2.2] indent-8" style="color: var(--gold-pale)">
+              {{ currentGua.guaci }}
+            </p>
+            <div class="mt-6 mx-auto w-16 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
+            <div class="mt-2 text-[10px] tracking-widest opacity-25" :style="{ color: wuxingColor }">
+              {{ currentGua.pinyin }} · 第{{ currentGua.num }}卦
+            </div>
           </div>
-          <p class="text-[1.1rem] font-serif leading-[2.2] indent-8" style="color: var(--gold-pale)">
-            {{ currentGua.guaci }}
-          </p>
-          <div class="mt-6 mx-auto w-16 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
-          <div class="mt-2 text-[10px] tracking-widest opacity-25" :style="{ color: wuxingColor }">
-            {{ currentGua.pinyin }} · 第{{ currentGua.num }}卦
+          <!-- Relations panel -->
+          <div class="w-full max-w-sm rounded p-3" :style="{ background: `${wuxingColor}06`, border: `1px solid ${wuxingColor}18` }">
+            <div class="text-[10px] uppercase tracking-widest mb-2" style="color: var(--ink-faint)">相关卦象 · 点击跳转</div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-if="cuoGua"
+                @click.stop="navigateTo(cuoGua)"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+                :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+              >
+                <span class="text-base leading-none" :style="{ color: wuxingColor, textShadow: `0 0 6px ${wuxingColor}40` }">{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][cuoGua.num - 1] }}</span>
+                <span style="color: var(--ink-faint)">{{ REL_LABELS.cuo }}</span>
+                <span class="font-medium" :style="{ color: wuxingColor }">{{ cuoGua.name }}</span>
+              </button>
+              <button
+                v-if="zongGua"
+                @click.stop="navigateTo(zongGua)"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+                :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+              >
+                <span class="text-base leading-none" :style="{ color: wuxingColor, textShadow: `0 0 6px ${wuxingColor}40` }">{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][zongGua.num - 1] }}</span>
+                <span style="color: var(--ink-faint)">{{ REL_LABELS.zong }}</span>
+                <span class="font-medium" :style="{ color: wuxingColor }">{{ zongGua.name }}</span>
+              </button>
+              <button
+                v-if="huGua"
+                @click.stop="navigateTo(huGua)"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+                :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+              >
+                <span class="text-base leading-none" :style="{ color: wuxingColor, textShadow: `0 0 6px ${wuxingColor}40` }">{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][huGua.num - 1] }}</span>
+                <span style="color: var(--ink-faint)">{{ REL_LABELS.hu }}</span>
+                <span class="font-medium" :style="{ color: wuxingColor }">{{ huGua.name }}</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Xiangci + Tuanc (象彖) -->
-      <div v-else-if="activeTab === 'xiangci'" class="flex flex-col gap-6 px-6 py-8 items-center">
-        <!-- 象辞 (大象) -->
-        <div v-if="currentGua.xiangci" class="text-center max-w-sm">
-          <div class="text-[10px] tracking-[0.4em] mb-3 uppercase opacity-30" :style="{ color: wuxingColor }">象辞 · 大象</div>
-          <p class="text-[1.05rem] font-serif leading-[2.4]" style="color: var(--gold-pale)">
-            {{ currentGua.xiangci }}
-          </p>
-        </div>
-        <div v-if="currentGua.xiangci && currentGua.tuanc" class="w-12 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}40, transparent)` }" />
-        <!-- 彖辞 -->
-        <div v-if="currentGua.tuanc" class="text-center max-w-sm">
-          <div class="text-[10px] tracking-[0.4em] mb-3 uppercase opacity-30" :style="{ color: wuxingColor }">彖辞</div>
-          <p class="text-[0.95rem] font-serif leading-[2.2]" style="color: var(--gold-pale)">
-            {{ currentGua.tuanc }}
-          </p>
-        </div>
-        <div v-if="!currentGua.xiangci && !currentGua.tuanc" class="text-center" style="color: var(--ink-faint)">象彖待补充</div>
-      </div>
-
-      <!-- Yaoci -->
-      <div v-else-if="activeTab === 'yaoci'" class="flex flex-col gap-2 p-4">
-        <div
-          v-for="yao in yaoAll"
-          :key="yao.label"
-          class="flex items-start gap-3 p-3 rounded-lg"
-          :style="{
-            borderLeft: `2px ${yao.yang ? 'solid' : 'dashed'} ${wuxingColor}50`,
-            background: yao.yang ? `${wuxingColor}06` : 'var(--surface)',
-          }"
+        <!-- Xiangci + Tuanc (象彖) -->
+        <div v-else-if="activeTab === 'xiangci'" key="xiangci" class="flex flex-col gap-6 items-center"
+          style="background: radial-gradient(ellipse at 50% 40%, rgba(200,150,30,0.04) 0%, transparent 70%)"
         >
-          <div
-            class="w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
-            :style="{ background: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}30` }"
-          >{{ yao.label }}</div>
-          <p class="text-[13px] leading-[1.8] flex-1" style="color: var(--ink-light)">{{ yao.text }}</p>
-        </div>
-      </div>
-
-      <!-- Relations panel (shown alongside text content, clickable) -->
-      <div v-if="activeTab === 'guaci' || activeTab === 'xiangci'" class="px-4 pb-4">
-        <div class="rounded-lg p-3" :style="{ background: `${wuxingColor}06`, border: `1px solid ${wuxingColor}18` }">
-          <div class="text-[10px] uppercase tracking-widest mb-2" style="color: var(--ink-faint)">相关卦象 · 点击跳转</div>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-if="cuoGua"
-              @click="navigateTo(cuoGua)"
-              class="flex items-center gap-2 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
-              :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
-            >
-              <span style="color: var(--ink-faint)">{{ REL_LABELS.cuo }}</span>
-              <span class="font-medium" :style="{ color: wuxingColor }">{{ cuoGua.name }}</span>
-            </button>
-            <button
-              v-if="zongGua"
-              @click="navigateTo(zongGua)"
-              class="flex items-center gap-2 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
-              :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
-            >
-              <span style="color: var(--ink-faint)">{{ REL_LABELS.zong }}</span>
-              <span class="font-medium" :style="{ color: wuxingColor }">{{ zongGua.name }}</span>
-            </button>
-            <button
-              v-if="huGua"
-              @click="navigateTo(huGua)"
-              class="flex items-center gap-2 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
-              :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
-            >
-              <span style="color: var(--ink-faint)">{{ REL_LABELS.hu }}</span>
-              <span class="font-medium" :style="{ color: wuxingColor }">{{ huGua.name }}</span>
-            </button>
+          <div v-if="currentGua.xiangci" class="text-center max-w-sm">
+            <div class="text-[10px] tracking-[0.4em] mb-3 uppercase" :style="{ color: wuxingColor, opacity: 1 }">象辞 · 大象</div>
+            <p class="text-[0.95rem] font-serif leading-[2.4]" style="color: var(--gold-bright)">
+              {{ currentGua.xiangci }}
+            </p>
+          </div>
+          <div v-if="currentGua.xiangci && currentGua.tuanc" class="w-12 h-px" :style="{ background: `linear-gradient(to right, transparent, ${wuxingColor}60, transparent)` }" />
+          <div v-if="currentGua.tuanc" class="text-center max-w-sm">
+            <div class="text-[10px] tracking-[0.4em] mb-3 uppercase" :style="{ color: wuxingColor, opacity: 1 }">彖辞</div>
+            <p class="text-[0.9rem] font-serif leading-[2.2]" style="color: var(--ink-light)">
+              {{ currentGua.tuanc }}
+            </p>
+          </div>
+          <div v-if="!currentGua.xiangci && !currentGua.tuanc" class="text-center" style="color: var(--ink-faint)">象彖待补充</div>
+          <!-- Relations panel -->
+          <div class="w-full max-w-sm rounded p-3" :style="{ background: `${wuxingColor}06`, border: `1px solid ${wuxingColor}18` }">
+            <div class="text-[10px] uppercase tracking-widest mb-2" style="color: var(--ink-faint)">相关卦象 · 点击跳转</div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-if="cuoGua"
+                @click.stop="navigateTo(cuoGua)"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+                :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+              >
+                <span class="text-base leading-none" :style="{ color: wuxingColor, textShadow: `0 0 6px ${wuxingColor}40` }">{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][cuoGua.num - 1] }}</span>
+                <span style="color: var(--ink-faint)">{{ REL_LABELS.cuo }}</span>
+                <span class="font-medium" :style="{ color: wuxingColor }">{{ cuoGua.name }}</span>
+              </button>
+              <button
+                v-if="zongGua"
+                @click.stop="navigateTo(zongGua)"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+                :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+              >
+                <span class="text-base leading-none" :style="{ color: wuxingColor, textShadow: `0 0 6px ${wuxingColor}40` }">{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][zongGua.num - 1] }}</span>
+                <span style="color: var(--ink-faint)">{{ REL_LABELS.zong }}</span>
+                <span class="font-medium" :style="{ color: wuxingColor }">{{ zongGua.name }}</span>
+              </button>
+              <button
+                v-if="huGua"
+                @click.stop="navigateTo(huGua)"
+                class="flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-pointer transition-all hover:opacity-80"
+                :style="{ background: `${wuxingColor}10`, border: `1px solid ${wuxingColor}25` }"
+              >
+                <span class="text-base leading-none" :style="{ color: wuxingColor, textShadow: `0 0 6px ${wuxingColor}40` }">{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][huGua.num - 1] }}</span>
+                <span style="color: var(--ink-faint)">{{ REL_LABELS.hu }}</span>
+                <span class="font-medium" :style="{ color: wuxingColor }">{{ huGua.name }}</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Gallery -->
-      <div v-else-if="activeTab === 'gallery'" class="p-4">
-        <div v-if="galleryImages === null" class="h-64 flex items-center justify-center">
-          <div class="w-8 h-8 border-2 rounded-full animate-spin" style="border-color: var(--gold); border-top-color: transparent" />
+        <!-- Yaoci -->
+        <div v-else-if="activeTab === 'yaoci'" key="yaoci" class="flex flex-col gap-2">
+          <div class="flex items-center justify-center gap-2 py-1 mb-2">
+            <span class="text-[10px] uppercase tracking-widest mr-1" style="color: var(--ink-faint)">爻变</span>
+            <button
+              v-for="(yao, idx) in yaoAll"
+              :key="idx"
+              @click.stop="handleYaoClick(idx); navigateByYaoChange(idx)"
+              class="w-9 h-9 rounded text-[13px] font-bold transition-all hover:brightness-125 active:scale-95 relative overflow-hidden"
+              :style="{
+                background: yao.yang ? `${wuxingColor}18` : 'var(--surface)',
+                border: `1px solid ${yao.yang ? wuxingColor + '50' : 'var(--border)'}`,
+                color: yao.yang ? wuxingColor : 'var(--ink-faint)',
+              }"
+            >
+              <span
+                v-if="rippleIdx === idx"
+                class="absolute inset-0 rounded yao-ripple"
+                :style="{ background: `${wuxingColor}50` }"
+              />
+              {{ yao.label }}
+            </button>
+          </div>
+          <div
+            v-for="yao in yaoAll"
+            :key="yao.label"
+            class="flex items-start gap-3 p-3 rounded"
+            :style="{
+              borderLeft: `2px ${yao.yang ? 'solid' : 'dashed'} ${wuxingColor}50`,
+              background: yao.yang ? `${wuxingColor}06` : 'var(--surface)',
+            }"
+          >
+            <div
+              class="w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
+              :style="{ background: `${wuxingColor}18`, color: wuxingColor, border: `1px solid ${wuxingColor}30` }"
+            >{{ yao.label }}</div>
+            <p class="text-[13px] leading-[1.8] flex-1" style="color: var(--ink-light)">{{ yao.text }}</p>
+          </div>
         </div>
-        <div v-else-if="galleryImages.length === 0" class="h-64 flex flex-col items-center justify-center gap-2" style="color: var(--ink-faint)">
-          <span class="text-3xl opacity-30">◈</span>
-          <p class="text-sm">暂无图片</p>
-        </div>
-        <Gallery v-else :gua="currentGua" :imageUrls="galleryImages" class="w-full h-64" />
-      </div>
 
-      <!-- Music -->
-      <div v-else-if="activeTab === 'music'" class="p-4">
-        <AudioPlayer :gua="currentGua" class="w-full" />
-      </div>
+        <!-- Gallery -->
+        <div v-else-if="activeTab === 'gallery'" key="gallery">
+          <div v-if="galleryImages === null" class="h-64 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 rounded-full animate-spin" style="border-color: var(--gold); border-top-color: transparent" />
+          </div>
+          <div v-else-if="galleryImages.length === 0" class="h-64 flex flex-col items-center justify-center gap-2" style="color: var(--ink-faint)">
+            <span class="text-3xl opacity-30">◈</span>
+            <p class="text-sm">暂无图片</p>
+          </div>
+          <Gallery v-else :gua="currentGua" :imageUrls="galleryImages" class="w-full h-64" />
+        </div>
+
+        <!-- Music -->
+        <div v-else-if="activeTab === 'music'" key="music">
+          <AudioPlayer :gua="currentGua" class="w-full" />
+        </div>
+
+      </Transition>
 
     </div>
   </div>

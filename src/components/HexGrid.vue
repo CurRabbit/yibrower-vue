@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { GuaBase } from '@/types'
 import { WX_COLOR, WX_BG, WX_MAP } from '@/data/wuxing-map'
+import { playCardTapIfEnabled } from '@/composables/useSound'
+import { addBurst } from '@/composables/useParticleBurst'
 
 const props = defineProps<{
   guas: GuaBase[]
@@ -36,7 +38,8 @@ function getCardRadius(gua: GuaBase): string {
       :key="getGuaKey(gua)"
       class="gua-card-enter cursor-pointer group"
       :style="{ animationDelay: `${(i % 8) * 40}ms`, animationFillMode: 'both' }"
-      @click="onSelect(getGuaKey(gua))"
+      @click="playCardTapIfEnabled(); addBurst(($event as MouseEvent).clientX, ($event as MouseEvent).clientY); onSelect(getGuaKey(gua))"
+      @touchend.passive="playCardTapIfEnabled(); const t = ($event as TouchEvent).changedTouches[0]; addBurst(t?.clientX ?? 0, t?.clientY ?? 0); onSelect(getGuaKey(gua))"
     >
       <div
         class="relative overflow-hidden transition-all duration-300 group-hover:shadow-hover group-hover:-translate-y-1"
@@ -52,11 +55,24 @@ function getCardRadius(gua: GuaBase): string {
           transition: 'border-color 0.3s ease, box-shadow 0.3s ease, border-top 0.3s ease, border-left 0.3s ease',
         }"
       >
+        <!-- Hover 五行光晕 -->
+        <div
+          class="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          :style="{
+            background: `radial-gradient(ellipse at 50% 40%, ${WX_COLOR[gua.wuxing]}18 0%, transparent 65%)`,
+          }"
+        />
+
         <!-- 卦象区域：改扁比例 + max-width -->
         <div class="relative w-full aspect-video flex items-center justify-center overflow-hidden">
-          <div class="text-5xl leading-none transition-opacity duration-300 group-hover:opacity-20" style="color: var(--ink-faint); opacity: 0.35; user-select: none;">
-            {{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][gua.num - 1] }}
-          </div>
+          <div
+            class="text-5xl leading-none transition-all duration-200 group-hover:scale-110"
+            :style="{
+              color: 'var(--ink-faint)',
+              opacity: 0.35,
+              userSelect: 'none',
+            }"
+          >{{ ['䷀','䷁','䷂','䷃','䷄','䷅','䷆','䷇','䷈','䷉','䷊','䷋','䷌','䷍','䷎','䷏','䷐','䷑','䷒','䷓','䷔','䷕','䷖','䷗','䷘','䷙','䷚','䷛','䷜','䷝','䷞','䷟','䷠','䷡','䷢','䷣','䷤','䷥','䷦','䷧','䷨','䷩','䷪','䷫','䷬','䷭','䷮','䷯','䷱','䷲','䷳','䷴','䷵','䷶','䷷','䷸','䷹','䷺','䷻','䷼','䷽','䷾','䷿'][gua.num - 1] }}</div>
           <!-- Wuxing corner badge -->
           <div
             class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium"

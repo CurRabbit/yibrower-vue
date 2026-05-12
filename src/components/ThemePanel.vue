@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useTheme, COLOR_OPTIONS, TEXTURE_OPTIONS, FONT_SIZE_OPTIONS, ANIM_OPTIONS } from '@/composables/useTheme'
+import { soundEnabled, toggleSound } from '@/composables/useSound'
 
 const { theme, setTheme } = useTheme()
 const open = ref(false)
 
 function toggle() { open.value = !open.value }
 function close() { open.value = false }
+defineExpose({ toggle })
 </script>
 
 <template>
@@ -54,7 +56,7 @@ function close() { open.value = false }
                 :key="opt.key"
                 @click="setTheme({ color: opt.key })"
                 :title="opt.hint"
-                class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all"
+                class="flex flex-col items-center gap-1 p-2 rounded transition-all"
                 :style="{
                   background: theme.color === opt.key ? `${opt.accent}18` : 'var(--surface)',
                   border: theme.color === opt.key ? `1.5px solid ${opt.accent}` : `1px solid var(--border)`,
@@ -77,7 +79,7 @@ function close() { open.value = false }
                 :key="opt.key"
                 @click="setTheme({ texture: opt.key })"
                 :title="opt.hint"
-                class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all"
+                class="flex flex-col items-center gap-1 p-2 rounded transition-all"
                 :style="{
                   background: theme.texture === opt.key ? `${COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}14` : 'var(--surface)',
                   border: theme.texture === opt.key ? `1.5px solid ${COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}` : `1px solid var(--border)`,
@@ -122,7 +124,7 @@ function close() { open.value = false }
                 :key="opt.key"
                 @click="setTheme({ fontSize: opt.key })"
                 :title="opt.hint"
-                class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all"
+                class="flex flex-col items-center gap-1 p-2 rounded transition-all"
                 :style="{
                   background: theme.fontSize === opt.key ? `${COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}14` : 'var(--surface)',
                   border: theme.fontSize === opt.key ? `1.5px solid ${COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}` : `1px solid var(--border)`,
@@ -144,7 +146,7 @@ function close() { open.value = false }
                 :key="opt.key"
                 @click="setTheme({ anim: opt.key })"
                 :title="opt.hint"
-                class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all"
+                class="flex flex-col items-center gap-1 p-2 rounded transition-all"
                 :style="{
                   background: theme.anim === opt.key ? `${COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}14` : 'var(--surface)',
                   border: theme.anim === opt.key ? `1.5px solid ${COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}` : `1px solid var(--border)`,
@@ -170,6 +172,25 @@ function close() { open.value = false }
                   />
                 </div>
                 <span class="text-[11px]">{{ opt.label }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 音效 -->
+          <div>
+            <div class="text-[10px] uppercase tracking-widest mb-2" style="color: var(--ink-faint)">音效</div>
+            <div class="flex gap-2">
+              <button
+                @click="toggleSound"
+                class="flex-1 flex items-center justify-center gap-2 p-2 rounded text-[11px] font-medium transition-all"
+                :style="{
+                  background: !soundEnabled ? 'var(--surface)' : `${COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}14`,
+                  border: `1px solid ${!soundEnabled ? 'var(--border)' : COLOR_OPTIONS.find(o => o.key === theme.color)?.accent}50`,
+                  color: 'var(--ink-faint)',
+                }"
+              >
+                <span>{{ !soundEnabled ? '🔇' : '🔊' }}</span>
+                <span>{{ !soundEnabled ? '静音' : '开启' }}</span>
               </button>
             </div>
           </div>

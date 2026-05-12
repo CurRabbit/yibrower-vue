@@ -6,6 +6,7 @@ import OrderFilter from './OrderFilter.vue'
 import ThemePanel from './ThemePanel.vue'
 import type { Wuxing } from '@/types'
 import type { GuaOrder } from '@/data/gua-data'
+import { useLunar } from '@/composables/useLunar'
 
 defineProps<{
   searchValue: string
@@ -23,6 +24,19 @@ const emit = defineEmits<{
   'update:trigram': [b: string]
   'update:order': [v: GuaOrder]
 }>()
+
+const { info: lunarInfo } = useLunar()
+
+// ① 暴露 focus 方法透传给内部 SearchBar，供 HomeView 键盘快捷键调用
+const searchBarRef = ref<{ focus: () => void } | null>(null)
+function focusSearch() {
+  searchBarRef.value?.focus()
+}
+// ⑤ 移动端底部导航"主题"按钮：透传 ThemePanel.toggle
+const themePanelRef = ref<{ toggle: () => void } | null>(null)
+function toggleThemePanel() { themePanelRef.value?.toggle() }
+
+defineExpose({ focusSearch, toggleThemePanel })
 </script>
 
 <template>
@@ -43,7 +57,7 @@ const emit = defineEmits<{
       <!-- Logo -->
       <div class="flex items-center gap-2 flex-shrink-0">
         <div
-          class="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all duration-300 hover:scale-105"
+          class="w-7 h-7 rounded flex items-center justify-center text-sm transition-all duration-300 hover:scale-105"
           style="background: linear-gradient(135deg, color-mix(in oklab, var(--gold) 25%, transparent), color-mix(in oklab, var(--gold) 8%, transparent)); border: 1px solid color-mix(in oklab, var(--gold) 30%, transparent); color: var(--gold-bright); box-shadow: 0 0 10px color-mix(in oklab, var(--gold) 15%, transparent)"
         >☷</div>
         <span
@@ -52,10 +66,26 @@ const emit = defineEmits<{
         >易经</span>
       </div>
 
-      <SearchBar :value="searchValue" @update:value="emit('update:searchValue', $event)" />
+      <SearchBar ref="searchBarRef" :value="searchValue" @update:value="emit('update:searchValue', $event)" />
+
+      <!-- Lunar & 时辰 — 搜索框右侧 -->
+      <div
+        v-if="lunarInfo"
+        class="flex items-center gap-1 text-[11px] flex-shrink-0"
+        style="color: var(--ink-faint); letter-spacing: 0.05em"
+      >
+        <span>{{ lunarInfo.lunarDate }}</span>
+        <span style="color: var(--border-mid)">·</span>
+        <span>{{ lunarInfo.shichen }}</span>
+        <span
+          v-if="lunarInfo.solarTerm"
+          class="rounded px-1 py-0.5 text-[10px] font-medium"
+          style="background: color-mix(in oklab, var(--atm-color) 14%, transparent); color: var(--atm-color); letter-spacing: 0.1em"
+        >{{ lunarInfo.solarTerm }}</span>
+      </div>
 
       <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
-        <ThemePanel />
+        <ThemePanel ref="themePanelRef" />
         <!-- Counter -->
         <span class="text-xs flex-shrink-0 pl-1" style="color: var(--ink-faint); letter-spacing: 0.1em">
           {{ totalGuas }} 卦

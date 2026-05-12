@@ -227,6 +227,19 @@ body.anim-none *, body.anim-none *::before, body.anim-none *::after {
 /* 全局动画统一使用 var(--anim-duration) */
 * { transition-duration: var(--anim-duration, 0.6s); }
 
+/* E7: 主题平滑过渡 — 仅 color/background 相关属性，0.3s，由 anim-duration 控制速度 */
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+body::before,
+body::after {
+  transition:
+    background 0.3s ease,
+    opacity 0.3s ease;
+}
+
 /* ── 基础重置 ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -277,6 +290,20 @@ body::after {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+/* Tab content transition (GuaDetail) */
+.tab-content-enter-active,
+.tab-content-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tab-content-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.tab-content-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -294,10 +321,88 @@ body::after {
   100% { transform: translateX(-50%); }
 }
 
+/* ── 动画 ──────────────────────────────────────────────── */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(40px) scale(0.97);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .gua-card-enter { animation: fadeInUp var(--anim-duration, 0.35s) ease-out both; }
 .tab-content-enter { animation: fadeSlideIn var(--anim-duration, 0.25s) ease-out both; }
 .marquee-track { animation: marquee-scroll var(--anim-duration, 18s) linear infinite; }
 .marquee-track:hover { animation-play-state: paused; }
+
+/* 卦详情入场/退场动画 */
+.gua-detail-enter {
+  animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.gua-detail-leave {
+  animation: slideOutRight 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* 变爻翻页动画 */
+.gua-symbol-flip {
+  animation: scaleIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ImmersionView 文字入场动画 */
+@keyframes immFadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes immFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.imm-gua-name  { animation: immFadeInUp 0.6s cubic-bezier(0.4,0,0.2,1) 0ms    both; }
+.imm-gua-meta  { animation: immFadeInUp 0.6s cubic-bezier(0.4,0,0.2,1) 120ms  both; }
+.imm-gua-tag   { animation: immFadeInUp 0.6s cubic-bezier(0.4,0,0.2,1) 220ms  both; }
+.imm-guaci     { animation: immFadeInUp 0.6s cubic-bezier(0.4,0,0.2,1) 340ms  both; }
+.imm-nav       { animation: immFadeIn    0.5s ease-out                       500ms both; }
+
+/* 卡片 hover 五行光晕浮现 */
+@keyframes wuxingGlowPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.05); }
+}
+
+/* 爻位点击涟漪扩散动画 */
+@keyframes yaoRipple {
+  0%   { transform: scale(0); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.yao-ripple {
+  animation: yaoRipple 0.6s ease-out forwards;
+  pointer-events: none;
+}
 
 #app { min-height: 100vh; }
 
@@ -397,5 +502,67 @@ body::after {
   .today-banner-inner {
     padding: 10px 12px;
     gap: 8px;
+  }
+}
+
+/* ── 移动端底部弹窗（Modal Bottom Sheet）──────── */
+@media (max-width: 640px) {
+  /* GuaDetail 在移动端从底部弹出 */
+  .gua-detail-enter,
+  .gua-detail-leave {
+    animation: none !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    transform: translateY(0) !important;
+    animation: slideUpFromBottom 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+  }
+  .gua-detail-leave {
+    animation: slideDownToBottom 0.25s cubic-bezier(0.4, 0, 0.2, 1) both !important;
+  }
+}
+
+@keyframes slideUpFromBottom {
+  from { transform: translateY(100%); opacity: 0.7; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideDownToBottom {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+
+/* ── 移动端 HexGrid 卡片触控优化 ───────────── */
+@media (hover: none) and (pointer: coarse) {
+  .gua-card-enter {
+    /* 长按/触控时提供更明显的反馈 */
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gua-card-enter:active .relative {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* ── 移动端沉浸视图文字大小优化 ─────────────── */
+@media (max-width: 480px) {
+  .imm-gua-name h1 {
+    font-size: 3rem !important;
+  }
+  .imm-gua-meta {
+    font-size: 1.2rem !important;
+  }
+  .imm-guaci {
+    font-size: 1rem !important;
+    padding: 0 0.5rem;
+  }
+  .imm-nav button {
+    width: 44px !important;
+    height: 44px !important;
   }
 }

@@ -1,10 +1,52 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useSearchHistory } from '@/composables/useSearchHistory'
 
 const props = defineProps<{ value: string }>()
 const emit = defineEmits<{ 'update:value': [v: string] }>()
 
 const focused = ref(false)
+const searchInputRef = ref<HTMLInputElement | null>(null)
+const showHistory = ref(false)
+const history = ref<string[]>([])
+
+const { load, add, clear } = useSearchHistory()
+
+function focus() {
+  searchInputRef.value?.focus()
+}
+
+// 搜索框获得焦点时显示历史记录
+watch(focused, (f) => {
+  if (f) {
+    history.value = load()
+    showHistory.value = history.value.length > 0
+  } else {
+    showHistory.value = false
+  }
+})
+
+function selectHistory(item: string) {
+  emit('update:value', item)
+  showHistory.value = false
+  focused.value = false
+}
+
+function handleClearHistory() {
+  clear()
+  history.value = []
+  showHistory.value = false
+}
+
+// 搜索时保存历史（离开焦点时）
+function handleBlur() {
+  focused.value = false
+  if (props.value.trim()) {
+    add(props.value.trim())
+  }
+}
+
+defineExpose({ focus })
 </script>
 
 <template>
@@ -23,6 +65,7 @@ const focused = ref(false)
         :style="{ color: focused ? 'var(--gold)' : 'var(--ink-faint)' }"
       >⊛</span>
       <input
+        ref="searchInputRef"
         type="text"
         :value="value"
         placeholder="搜索卦象…"
@@ -38,7 +81,7 @@ const focused = ref(false)
         }"
         @input="emit('update:value', ($event.target as HTMLInputElement).value)"
         @focus="focused = true"
-        @blur="focused = false"
+        @blur="handleBlur"
       />
       <button
         v-if="value"
@@ -49,5 +92,48 @@ const focused = ref(false)
         @click="emit('update:value', '')"
       >✕</button>
     </div>
+
+    <!-- 搜索历史下拉 -->
+    <Transition name="history">
+      <div
+        v-if="showHistory && !value"
+        class="absolute left-0 right-0 top-full mt-1 rounded-xl overflow-hidden z-50"
+        style="
+          background: var(--surface-2);
+          border: 1px solid var(--border-mid);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        "
+      >
+        <div class="flex items-center justify-between px-3 py-1.5" style="border-bottom: 1px solid var(--border)">
+          <span class="text-[10px] uppercase tracking-widest" style="color: var(--ink-faint)">搜索历史</span>
+          <button
+            @click="handleClearHistory"
+            class="text-[10px] cursor-pointer transition-colors"
+            style="color: var(--ink-faint)"
+            @mouseenter="($event.target as HTMLElement).style.color = 'var(--vermilion)'"
+            @mouseleave="($event.target as HTMLElement).style.color = 'var(--ink-faint)'"
+          >清除</button>
+        </div>
+        <div class="py-1">
+          <button
+            v-for="item in history"
+            :key="item"
+            @mousedown.prevent="selectHistory(item)"
+            class="w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors"
+            style="color: var(--ink-light)"
+            @mouseenter="($event.target as HTMLElement).style.background = 'var(--elevated)'"
+            @mouseleave="($event.target as HTMLElement).style.background = 'transparent'"
+          >
+            <span style="color: var(--ink-faint)">⊛</span>
+            <span>{{ item }}</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style>
+.history-enter-active, .history-leave-active { transition: all 0.15s ease; }
+.history-enter-from, .history-leave-to { opacity: 0; transform: translateY(-4px); }
+</style>
