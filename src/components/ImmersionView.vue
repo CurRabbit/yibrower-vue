@@ -206,7 +206,7 @@ const yaoAll = computed(() => [
             class="absolute inset-x-0 flex items-center justify-center px-8 pointer-events-none"
           >
             <div
-              class="rounded-lg px-6 py-4 max-w-sm text-center"
+              class="rounded-xl px-6 py-4 max-w-sm text-center"
               :style="{
                 background: `color-mix(in oklab, ${wuxingColor} 15%, rgba(13,10,7,0.92))`,
                 border: `1px solid ${wuxingColor}50`,

@@ -163,7 +163,7 @@ function navigateByYaoChange(yaoIdx: number) {
 <template>
   <div
     :class="isLeaving ? 'gua-detail-leave' : 'gua-detail-enter'"
-    class="relative w-full rounded-lg overflow-hidden flex flex-col"
+    class="relative w-full rounded-xl overflow-hidden flex flex-col"
     :style="{
       background: 'linear-gradient(160deg, #1e1915 0%, #161210 100%)',
       border: `1px solid ${wuxingColor}25`,
@@ -281,7 +281,7 @@ function navigateByYaoChange(yaoIdx: number) {
     </div>
 
     <!-- ── Scrollable body ── -->
-    <div class="flex-1 min-h-0 overflow-y-auto p-8">
+    <div class="flex-1 min-h-0 overflow-y-auto p-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px)+56px)] md:!pb-8">
 
       <Transition name="tab-content" mode="out-in">
 

@@ -20,6 +20,9 @@ const bannerRef = ref<HTMLElement | null>(null)
 const headerRef = ref<{ focusSearch: () => void; toggleThemePanel: () => void } | null>(null)
 const searchBarRef = ref<{ focus: () => void } | null>(null)
 
+// ⑥ 移动端底部导航高度（用于避免内容被遮挡）
+const MOBILE_NAV_HEIGHT = 56
+
 // ① 键盘快捷键
 useKeyboard({
   onPrev: () => {
