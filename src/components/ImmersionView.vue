@@ -122,9 +122,23 @@ function resize() {
 
 // Swipe navigation
 const touchStartX = ref(0)
+const touchStartY = ref(0)
+const touchStartEl = ref<EventTarget | null>(null)
+
+function handleTouchStart(e: TouchEvent) {
+  touchStartX.value = e.touches[0]?.clientX ?? 0
+  touchStartY.value = e.touches[0]?.clientY ?? 0
+  touchStartEl.value = e.target as EventTarget | null
+}
+
 function handleTouchEnd(e: TouchEvent) {
+  // 如果触达元素是按钮/交互元素，跳过 swipe 导航（避免按钮点击被误判为 swipe）
+  const el = touchStartEl.value as HTMLElement | null
+  if (el?.closest('button, [role="button"], a, input, select, textarea')) return
   const dx = e.changedTouches[0].clientX - touchStartX.value
-  if (Math.abs(dx) < 80) return
+  const dy = e.changedTouches[0].clientY - touchStartY.value
+  // 滑动距离不足或纵向滑动为主 → 不是横向 swipe，忽略
+  if (Math.abs(dx) < 80 || Math.abs(dy) > Math.abs(dx)) return
   if (dx < 0) props.onNext()
   else props.onPrev()
 }
@@ -171,7 +185,7 @@ const yaoAll = computed(() => [
     :class="props.class"
     class="fixed inset-0 z-50 flex items-center justify-center"
     style="background: color-mix(in oklab, var(--bg) 96%, transparent)"
-    @touchstart.passive="touchStartX = $event.touches[0]?.clientX ?? 0"
+    @touchstart.passive="handleTouchStart($event)"
     @touchend.passive="handleTouchEnd($event)"
   >
     <!-- Interactive particle canvas — clickable zones for yao interaction -->
