@@ -46,6 +46,16 @@ function handleBlur() {
   }
 }
 
+// Escape 键：清空搜索内容并失焦
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    if (props.value) {
+      emit('update:value', '')
+    }
+    searchInputRef.value?.blur()
+  }
+}
+
 defineExpose({ focus })
 </script>
 
@@ -82,6 +92,7 @@ defineExpose({ focus })
         @input="emit('update:value', ($event.target as HTMLInputElement).value)"
         @focus="focused = true"
         @blur="handleBlur"
+        @keydown="handleKeydown"
       />
       <button
         v-if="value"

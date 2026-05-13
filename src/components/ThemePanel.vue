@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useTheme, COLOR_OPTIONS, TEXTURE_OPTIONS, FONT_SIZE_OPTIONS, ANIM_OPTIONS } from '@/composables/useTheme'
 import { soundEnabled, toggleSound } from '@/composables/useSound'
 
@@ -8,6 +8,17 @@ const open = ref(false)
 
 function toggle() { open.value = !open.value }
 function close() { open.value = false }
+
+// Escape 键关闭面板
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && open.value) {
+    e.stopPropagation()
+    close()
+  }
+}
+onMounted(() => document.addEventListener('keydown', handleKeydown))
+onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
+
 defineExpose({ toggle })
 </script>
 
@@ -189,7 +200,10 @@ defineExpose({ toggle })
                   color: 'var(--ink-faint)',
                 }"
               >
-                <span>{{ !soundEnabled ? '🔇' : '🔊' }}</span>
+                <!-- 静音 SVG icon -->
+                <svg v-if="!soundEnabled" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                <!-- 开启 SVG icon -->
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                 <span>{{ !soundEnabled ? '静音' : '开启' }}</span>
               </button>
             </div>
